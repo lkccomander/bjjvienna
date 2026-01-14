@@ -1,3 +1,6 @@
 [tool.ruff]
 select = ["E", "F"]
 ignore = ["E501"]
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
