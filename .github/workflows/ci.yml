@@ -27,3 +27,7 @@ jobs:
         run: |
           ruff check .
 
+      - name: Tests (pytest)
+        run: |
+          pytest
+
