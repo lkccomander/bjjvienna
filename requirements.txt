@@ -1,0 +1,9 @@
+tkcalendar
+matplotlib
+psycopg2-binary
+pytest
+ruff
+pyinstaller
+psycopg
+tkcalendar
+dotenv
