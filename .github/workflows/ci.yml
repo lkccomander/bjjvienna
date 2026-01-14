@@ -25,5 +25,5 @@ jobs:
 
       - name: Lint (ruff)
         run: |
-          ruff .
+          ruff check .
 
