@@ -61,53 +61,125 @@ root.title(f"BJJ Academy Management v{__version__}")
 # TAB — ATTENDANCE
 # ============================
 
-attendance_main = ttk.Frame(tab_attendance, padding=10)
-attendance_main.pack(fill="both", expand=True)
 
-attendance_main.columnconfigure(0, weight=1)
-attendance_main.rowconfigure(1, weight=1)
 
-attendance_header = ttk.LabelFrame(attendance_main, text="Attendance Date", padding=10)
-attendance_header.grid(row=0, column=0, sticky="ew", pady=5)
+attendance_frame = ttk.LabelFrame(tab_attendance, text="Attendance", padding=10)
+attendance_frame.pack(fill="both", expand=True)
 
-att_date = DateEntry(attendance_header, date_pattern="yyyy-mm-dd")
-att_date.grid(row=0, column=0, padx=5)
+attendance_frame.columnconfigure(0, weight=1)
+attendance_frame.rowconfigure(3, weight=1)
 
-btn_load_attendance = ttk.Button(attendance_header, text="Load")
-btn_load_attendance.grid(row=0, column=1, padx=5)
+session_id = tk.IntVar()
+student_id = tk.IntVar()
+status = tk.StringVar(value="present")
+source = tk.StringVar(value="coach")
+query_value = tk.IntVar()
 
-attendance_list = ttk.LabelFrame(attendance_main, text="Students", padding=10)
-attendance_list.grid(row=1, column=0, sticky="nsew")
+def register_attendance():
+    try:
+        execute("""
+            INSERT INTO t_attendance (session_id, student_id, status, checkin_source)
+            VALUES (%s,%s,%s,%s)
+            ON CONFLICT DO NOTHING
+        """, (
+            session_id.get(),
+            student_id.get(),
+            status.get(),
+            source.get()
+        ))
+        messagebox.showinfo("OK", "Attendance registered")
+    except Exception as e:
+        messagebox.showerror("Error", str(e))
+
+
+def search_by_session():
+    rows = execute("""
+        SELECT st.name, a.status, a.checkin_time
+        FROM t_attendance a
+        JOIN t_students st ON a.student_id = st.id
+        WHERE a.session_id = %s
+        ORDER BY st.name
+    """, (query_value.get(),))
+    fill_attendance_table(rows)
+
+
+def search_by_student():
+    rows = execute("""
+        SELECT c.name, cs.session_date, a.status
+        FROM t_attendance a
+        JOIN t_class_sessions cs ON a.session_id = cs.id
+        JOIN t_classes c ON cs.class_id = c.id
+        WHERE a.student_id = %s
+        ORDER BY cs.session_date DESC
+    """, (query_value.get(),))
+    fill_attendance_table(rows)
+
+
+def fill_attendance_table(rows):
+    for r in attendance_tree.get_children():
+        attendance_tree.delete(r)
+    for row in rows:
+        attendance_tree.insert("", tk.END, values=row)
+
+
+register_frame = ttk.LabelFrame(attendance_frame, text="Register Attendance", padding=10)
+register_frame.grid(row=0, column=0, sticky="ew", pady=5)
+
+ttk.Label(register_frame, text="Session ID").grid(row=0, column=0, sticky="w")
+ttk.Entry(register_frame, textvariable=session_id).grid(row=0, column=1, sticky="ew")
+
+ttk.Label(register_frame, text="Student ID").grid(row=1, column=0, sticky="w")
+ttk.Entry(register_frame, textvariable=student_id).grid(row=1, column=1, sticky="ew")
+
+ttk.Label(register_frame, text="Status").grid(row=2, column=0, sticky="w")
+ttk.Combobox(
+    register_frame,
+    textvariable=status,
+    values=["present", "late", "absent", "no_show"],
+    state="readonly"
+).grid(row=2, column=1, sticky="ew")
+
+ttk.Label(register_frame, text="Source").grid(row=3, column=0, sticky="w")
+ttk.Combobox(
+    register_frame,
+    textvariable=source,
+    values=["coach", "qr", "kiosk", "admin"],
+    state="readonly"
+).grid(row=3, column=1, sticky="ew")
+
+ttk.Button(
+    register_frame,
+    text="Register",
+    command=register_attendance
+).grid(row=4, column=0, columnspan=2, pady=5)
+
+register_frame.columnconfigure(1, weight=1)
+
+search_frame = ttk.LabelFrame(attendance_frame, text="Search", padding=10)
+search_frame.grid(row=1, column=0, sticky="ew", pady=5)
+
+ttk.Entry(search_frame, textvariable=query_value).grid(row=0, column=0, sticky="ew", padx=5)
+
+ttk.Button(search_frame, text="By Session", command=search_by_session)\
+    .grid(row=0, column=1, padx=5)
+
+ttk.Button(search_frame, text="By Student", command=search_by_student)\
+    .grid(row=0, column=2, padx=5)
+
+search_frame.columnconfigure(0, weight=1)
 
 attendance_tree = ttk.Treeview(
-    attendance_list,
-    columns=("id", "name", "present"),
+    attendance_frame,
+    columns=("c1", "c2", "c3"),
     show="headings",
-    height=15
+    height=12
 )
 
-attendance_tree.heading("id", text="ID")
-attendance_tree.heading("name", text="Student")
-attendance_tree.heading("present", text="Present")
+attendance_tree.heading("c1", text="Name / Class")
+attendance_tree.heading("c2", text="Status / Date")
+attendance_tree.heading("c3", text="Time")
 
-attendance_tree.column("id", width=60, anchor="center")
-attendance_tree.column("present", width=80, anchor="center")
-
-attendance_tree.pack(fill="both", expand=True)
-
-attendance_actions = ttk.Frame(attendance_main)
-attendance_actions.grid(row=2, column=0, pady=10)
-
-btn_mark_present = ttk.Button(attendance_actions, text="Mark Present")
-btn_mark_absent = ttk.Button(attendance_actions, text="Mark Absent")
-btn_save_attendance = ttk.Button(attendance_actions, text="Save")
-
-btn_mark_present.grid(row=0, column=0, padx=5)
-btn_mark_absent.grid(row=0, column=1, padx=5)
-btn_save_attendance.grid(row=0, column=2, padx=5)
-
-
-
+attendance_tree.grid(row=3, column=0, sticky="nsew", pady=10)
 
 
 # =====================================================
