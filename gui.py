@@ -75,6 +75,7 @@ status = tk.StringVar(value="present")
 source = tk.StringVar(value="coach")
 query_value = tk.IntVar()
 
+# Register a single attendance record for the selected session/student/status.
 def register_attendance():
     try:
         execute("""
@@ -92,6 +93,7 @@ def register_attendance():
         messagebox.showerror("Error", str(e))
 
 
+# Load attendance rows for a session id into the table.
 def search_by_session():
     rows = execute("""
         SELECT st.name, a.status, a.checkin_time
@@ -103,6 +105,7 @@ def search_by_session():
     fill_attendance_table(rows)
 
 
+# Load attendance rows for a student id into the table.
 def search_by_student():
     rows = execute("""
         SELECT c.name, cs.session_date, a.status
@@ -115,6 +118,7 @@ def search_by_student():
     fill_attendance_table(rows)
 
 
+# Replace the attendance table rows with the provided dataset.
 def fill_attendance_table(rows):
     for r in attendance_tree.get_children():
         attendance_tree.delete(r)
@@ -328,6 +332,7 @@ sessions_tree.tag_configure("cancelled", foreground="red")
 sessions_tree.pack(fill=tk.BOTH, expand=True)
 
 # ---------- Helpers ----------
+# Populate the coach combobox with active coaches from the database.
 def refresh_coach_options():
     global coach_option_map
     rows = execute("""
@@ -346,6 +351,7 @@ def refresh_coach_options():
     coach_cb["values"] = options
 
 
+# Populate the class combobox with active classes from the database.
 def refresh_class_options():
     global class_option_map
     rows = execute("""
@@ -364,6 +370,7 @@ def refresh_class_options():
     session_class_cb["values"] = options
 
 
+# Enable or disable class action buttons based on selection state.
 def update_class_button_states():
     if selected_class_active is None:
         btn_class_deactivate.config(state="disabled")
@@ -376,6 +383,7 @@ def update_class_button_states():
         btn_class_reactivate.config(state="normal")
 
 
+# Enable or disable session action buttons based on selection state.
 def update_session_button_states():
     if selected_session_cancelled is None:
         btn_session_cancel.config(state="disabled")
@@ -389,6 +397,7 @@ def update_session_button_states():
 
 
 # ---------- Loaders ----------
+# Load classes from the database into the classes tree and refresh options.
 def load_classes():
     classes_tree.delete(*classes_tree.get_children())
     rows = execute("""
@@ -408,6 +417,7 @@ def load_classes():
     refresh_class_options()
 
 
+# Load class sessions from the database into the sessions tree.
 def load_sessions():
     sessions_tree.delete(*sessions_tree.get_children())
     rows = execute("""
@@ -427,6 +437,7 @@ def load_sessions():
 
 
 # ---------- Actions ----------
+# Reset class form fields and selection state.
 def clear_class_form():
     global selected_class_id, selected_class_active
     selected_class_id = None
@@ -438,6 +449,7 @@ def clear_class_form():
     update_class_button_states()
 
 
+# Validate and insert a new class, then reload the list.
 def register_class():
     try:
         validate_required(class_name.get(), "Class name")
@@ -474,6 +486,7 @@ def register_class():
         handle_db_error(e, "register_class")
 
 
+# Validate and update the selected class, then reload the list.
 def update_class():
     global selected_class_id
     try:
@@ -516,6 +529,7 @@ def update_class():
         handle_db_error(e, "update_class")
 
 
+# Mark the selected class inactive after confirmation.
 def deactivate_class():
     if not selected_class_id:
         return
@@ -527,6 +541,7 @@ def deactivate_class():
     load_classes()
 
 
+# Mark the selected class active after confirmation.
 def reactivate_class():
     if not selected_class_id:
         return
@@ -538,6 +553,7 @@ def reactivate_class():
     load_classes()
 
 
+# Populate class form fields when a class row is selected.
 def on_class_select(event):
     global selected_class_id, selected_class_active
     sel = classes_tree.selection()
@@ -562,6 +578,7 @@ def on_class_select(event):
     update_class_button_states()
 
 
+# Reset session form fields and selection state.
 def clear_session_form():
     global selected_session_id, selected_session_cancelled
     selected_session_id = None
@@ -574,6 +591,7 @@ def clear_session_form():
     update_session_button_states()
 
 
+# Validate and insert a new class session, then reload the list.
 def register_session():
     try:
         validate_required(session_class.get(), "Class")
@@ -604,6 +622,7 @@ def register_session():
         handle_db_error(e, "register_session")
 
 
+# Validate and update the selected session, then reload the list.
 def update_session():
     global selected_session_id
     try:
@@ -640,6 +659,7 @@ def update_session():
         handle_db_error(e, "update_session")
 
 
+# Mark the selected session as cancelled after confirmation.
 def cancel_session():
     if not selected_session_id:
         return
@@ -651,6 +671,7 @@ def cancel_session():
     load_sessions()
 
 
+# Mark the selected session as not cancelled after confirmation.
 def restore_session():
     if not selected_session_id:
         return
@@ -662,6 +683,7 @@ def restore_session():
     load_sessions()
 
 
+# Populate session form fields when a session row is selected.
 def on_session_select(event):
     global selected_session_id, selected_session_cancelled
     sel = sessions_tree.selection()
@@ -705,6 +727,7 @@ btn_session_clear.config(command=clear_session_form)
 # =====================================================
 # DB HELPERS FOR CHARTS
 # =====================================================
+# Return counts of students grouped by active status.
 def count_students_by_status():
     rows = execute("""
         SELECT active, COUNT(id)
@@ -717,6 +740,7 @@ def count_students_by_status():
     return data
 
 
+# Return the total number of students.
 def count_students_total():
     return execute("SELECT COUNT(id) FROM t_students")[0][0]
 
@@ -724,6 +748,7 @@ def count_students_total():
 # =====================================================
 # LOADERS
 # =====================================================
+# Fetch a page of students based on the active filter.
 def load_students_paged(page):
     if filter_active.get() == "Active":
         where = "WHERE active = true"
@@ -741,6 +766,7 @@ def load_students_paged(page):
     """, (PAGE_SIZE_STUDENTS, page * PAGE_SIZE_STUDENTS))
 
 
+# Count students based on the active filter for pagination.
 def count_students():
     if filter_active.get() == "Active":
         where = "WHERE active = true"
@@ -854,6 +880,7 @@ st_birthday.grid(row=len(fields), column=1)
 # =====================================================
 # CHARTS
 # =====================================================
+# Render the active vs inactive pie chart.
 def draw_active_gauge():
     stats = count_students_by_status()
     active = stats.get(True, 0)
@@ -877,6 +904,7 @@ def draw_active_gauge():
     canvas.get_tk_widget().pack()
 
 
+# Render the total students line chart.
 def draw_total_line():
     total = count_students_total()
 
@@ -893,6 +921,7 @@ def draw_total_line():
     canvas.get_tk_widget().pack()
 
 
+# Clear and redraw the dashboard charts.
 def refresh_charts():
     for w in chart_left.winfo_children():
         w.destroy()
@@ -905,6 +934,7 @@ def refresh_charts():
 # =====================================================
 # ACTIONS
 # =====================================================
+# Validate and insert a new student record, then refresh view and charts.
 def register_student():
     try:
         validate_required(st_name.get(), "Name")
@@ -945,6 +975,7 @@ def register_student():
         handle_db_error(e, "register_student")
 
 
+# Validate and update the selected student, then refresh view and charts.
 def update_student():
     global selected_student_id
     try:
@@ -990,6 +1021,7 @@ def update_student():
         handle_db_error(e, "update_student")
 
 
+# Mark the selected student inactive after confirmation.
 def deactivate_student():
     if not selected_student_id:
         return
@@ -1003,6 +1035,7 @@ def deactivate_student():
     refresh_charts()
 
 
+# Mark the selected student active after confirmation.
 def reactivate_student():
     if not selected_student_id:
         return
@@ -1015,6 +1048,7 @@ def reactivate_student():
     load_students_view()
     refresh_charts()
 
+# Reset student form fields and selection state.
 def clear_student_form():
     global selected_student_id, selected_student_active
     selected_student_id = None
@@ -1074,6 +1108,7 @@ students_tree.tag_configure("inactive", foreground="red")
 students_tree.pack(fill=tk.BOTH, expand=True)
 
 
+# Enable or disable student action buttons based on selection state.
 def update_button_states():
     if selected_student_active is None:
         btn_deactivate.config(state="disabled")
@@ -1086,6 +1121,7 @@ def update_button_states():
         btn_reactivate.config(state="normal")
 
 
+# Populate student form fields when a student row is selected.
 def on_student_select(event):
     global selected_student_id, selected_student_active
     sel = students_tree.selection()
@@ -1120,6 +1156,7 @@ students_tree.bind("<<TreeviewSelect>>", on_student_select)
 # =====================================================
 # PAGINATION
 # =====================================================
+# Load the current page of students into the tree and update paging label.
 def load_students_view():
     global selected_student_id, selected_student_active
     selected_student_id = None
@@ -1144,12 +1181,14 @@ def load_students_view():
     lbl_page.config(text=f"Page {current_student_page + 1} / {pages}")
 
 
+# Advance to the next page of students.
 def next_student():
     global current_student_page
     current_student_page += 1
     load_students_view()
 
 
+# Move back to the previous page of students.
 def prev_student():
     global current_student_page
     if current_student_page > 0:
@@ -1257,6 +1296,7 @@ teachers_tree.pack(fill=tk.BOTH, expand=True)
 # =====================================================
 # DB LOADERS
 # =====================================================
+# Load teachers from the database into the teachers tree.
 def load_teachers():
     teachers_tree.delete(*teachers_tree.get_children())
 
@@ -1279,6 +1319,7 @@ def load_teachers():
 # =====================================================
 # SELECTION
 # =====================================================
+# Populate teacher form fields when a teacher row is selected.
 def on_teacher_select(event):
     global selected_teacher_id, selected_teacher_active
     sel = teachers_tree.selection()
@@ -1308,6 +1349,7 @@ teachers_tree.bind("<<TreeviewSelect>>", on_teacher_select)
 # =====================================================
 # ACTIONS
 # =====================================================
+# Validate and insert a new teacher, then reload the list.
 def register_teacher():
     try:
         validate_required(tc_name.get(), "Name")
@@ -1330,6 +1372,7 @@ def register_teacher():
         handle_db_error(e, "register_teacher")
 
 
+# Update the selected teacher, then reload the list.
 def update_teacher():
     if not selected_teacher_id:
         return
@@ -1349,6 +1392,7 @@ def update_teacher():
     load_teachers()
 
 
+# Mark the selected teacher inactive.
 def deactivate_teacher():
     if not selected_teacher_id:
         return
@@ -1358,6 +1402,7 @@ def deactivate_teacher():
     load_teachers()
 
 
+# Mark the selected teacher active.
 def reactivate_teacher():
     if not selected_teacher_id:
         return
