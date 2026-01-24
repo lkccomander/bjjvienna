@@ -397,6 +397,7 @@ def update_session_button_states():
 
 
 # ---------- Loaders ----------
+# =====================================================
 # Load classes from the database into the classes tree and refresh options.
 def load_classes():
     classes_tree.delete(*classes_tree.get_children())
