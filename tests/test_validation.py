@@ -9,6 +9,7 @@ from validation_middleware import (
     validate_birthday,
 )
 
+# Basic happy-path and failure cases for validation helpers.
 def test_validate_required_ok():
     validate_required("John", "Name")
 
