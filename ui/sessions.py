@@ -7,7 +7,7 @@ from tkcalendar import DateEntry
 
 from db import execute
 from validation_middleware import ValidationError, validate_required
-from error_middleware import handle_db_error
+from error_middleware import handle_db_error, log_validation_error
 
 
 def _ensure_session_location_schema():
@@ -362,6 +362,7 @@ def build(tab_sessions):
             messagebox.showinfo("OK", "Class created")
 
         except ValidationError as ve:
+            log_validation_error(ve, "register_class")
             messagebox.showerror("Validation error", str(ve))
         except Exception as e:
             handle_db_error(e, "register_class")
@@ -404,6 +405,7 @@ def build(tab_sessions):
             messagebox.showinfo("OK", "Class updated")
 
         except ValidationError as ve:
+            log_validation_error(ve, "update_class")
             messagebox.showerror("Validation error", str(ve))
         except Exception as e:
             handle_db_error(e, "update_class")
@@ -497,6 +499,7 @@ def build(tab_sessions):
             messagebox.showinfo("OK", "Session created")
 
         except ValidationError as ve:
+            log_validation_error(ve, "register_session")
             messagebox.showerror("Validation error", str(ve))
         except Exception as e:
             handle_db_error(e, "register_session")
@@ -538,6 +541,7 @@ def build(tab_sessions):
             messagebox.showinfo("OK", "Session updated")
 
         except ValidationError as ve:
+            log_validation_error(ve, "update_session")
             messagebox.showerror("Validation error", str(ve))
         except Exception as e:
             handle_db_error(e, "update_session")

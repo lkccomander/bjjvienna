@@ -75,3 +75,12 @@ def handle_db_error(exc, context=""):
             "Unexpected error",
             "An unexpected database error occurred."
         )
+
+
+def log_validation_error(exc, context=""):
+    logging.error(
+        "VALIDATION ERROR | context=%s | type=%s | msg=%s",
+        context,
+        type(exc).__name__,
+        str(exc)
+    )

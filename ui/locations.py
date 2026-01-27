@@ -3,7 +3,7 @@ from tkinter import ttk, messagebox
 
 from db import execute
 from validation_middleware import ValidationError, validate_required
-from error_middleware import handle_db_error
+from error_middleware import handle_db_error, log_validation_error
 
 
 def ensure_locations_schema():
@@ -177,6 +177,7 @@ def build(tab_locations):
             load_locations()
             clear_location_form()
         except ValidationError as ve:
+            log_validation_error(ve, "register_location")
             messagebox.showerror("Validation error", str(ve))
         except Exception as e:
             handle_db_error(e, "register_location")
@@ -202,6 +203,7 @@ def build(tab_locations):
             load_locations()
             clear_location_form()
         except ValidationError as ve:
+            log_validation_error(ve, "update_location")
             messagebox.showerror("Validation error", str(ve))
         except Exception as e:
             handle_db_error(e, "update_location")

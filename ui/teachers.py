@@ -3,8 +3,8 @@ from tkinter import ttk
 from tkcalendar import DateEntry
 
 from db import execute
-from validation_middleware import validate_required, validate_email
-from error_middleware import handle_db_error
+from validation_middleware import ValidationError, validate_required, validate_email
+from error_middleware import handle_db_error, log_validation_error
 
 
 def build(tab_teachers):
@@ -185,7 +185,11 @@ def build(tab_teachers):
             load_teachers()
 
         except Exception as e:
-            handle_db_error(e, "register_teacher")
+            if isinstance(e, ValidationError):
+                log_validation_error(e, "register_teacher")
+                messagebox.showerror("Validation error", str(e))
+            else:
+                handle_db_error(e, "register_teacher")
 
     # Update the selected teacher, then reload the list.
     def update_teacher():

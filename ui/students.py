@@ -15,7 +15,7 @@ from validation_middleware import (
     validate_weight,
     validate_birthday,
 )
-from error_middleware import handle_db_error
+from error_middleware import handle_db_error, log_validation_error
 
 
 PAGE_SIZE_STUDENTS = 100
@@ -315,6 +315,7 @@ def build(tab_students):
             messagebox.showinfo("OK", "Student registered")
 
         except ValidationError as ve:
+            log_validation_error(ve, "register_student")
             messagebox.showerror("Validation error", str(ve))
         except Exception as e:
             handle_db_error(e, "register_student")
@@ -361,6 +362,7 @@ def build(tab_students):
             messagebox.showinfo("OK", "Student updated")
 
         except ValidationError as ve:
+            log_validation_error(ve, "update_student")
             messagebox.showerror("Validation error", str(ve))
         except Exception as e:
             handle_db_error(e, "update_student")
