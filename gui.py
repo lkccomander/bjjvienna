@@ -4,7 +4,7 @@ import traceback
 from tkinter import ttk, messagebox
 
 from version import __version__
-from ui import about, attendance, locations, reports, sessions, students, teachers
+from ui import about, attendance, locations, reports, sessions, settings, students, teachers
 
 
 def main():
@@ -22,12 +22,15 @@ def main():
         notebook = ttk.Notebook(root)
         notebook.pack(fill=tk.BOTH, expand=True)
 
+        style = ttk.Style(root)
+
         tab_teachers = ttk.Frame(notebook, padding=10)
         tab_locations = ttk.Frame(notebook, padding=10)
         tab_students = ttk.Frame(notebook, padding=10)
         tab_attendance = ttk.Frame(notebook, padding=10)
         tab_sessions = ttk.Frame(notebook, padding=10)
         tab_reports = ttk.Frame(notebook, padding=10)
+        tab_settings = ttk.Frame(notebook, padding=10)
         tab_about = ttk.Frame(notebook, padding=10)
 
         notebook.add(tab_teachers, text="Teachers")
@@ -36,6 +39,7 @@ def main():
         notebook.add(tab_attendance, text="Attendance")
         notebook.add(tab_sessions, text="Sessions")
         notebook.add(tab_reports, text="Reports")
+        notebook.add(tab_settings, text="Themes")
         notebook.add(tab_about, text="About / Config")
 
         root.title(f"BJJ Academy Management v{__version__}")
@@ -46,6 +50,7 @@ def main():
         attendance.build(tab_attendance)
         sessions_api = sessions.build(tab_sessions)
         reports.build(tab_reports)
+        settings.build(tab_settings, style)
         about_api = about.build(tab_about)
 
         teachers_api["load_teachers"]()
