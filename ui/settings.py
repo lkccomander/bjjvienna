@@ -42,13 +42,16 @@ def _apply_palette(style, palette):
 
 
 def build(tab_settings, style):
+   # ttk.Label(tab_settings, text="SETTINGS TAB OK", foreground="green").grid(
+    #    row=0, column=0, columnspan=3, sticky="w", padx=10, pady=10
+    #)
     root = tab_settings.winfo_toplevel()
 
     header = ttk.Label(tab_settings, text="Theme Settings", font=("Segoe UI", 12, "bold"))
-    header.pack(anchor="w", pady=(0, 10))
+    header.grid(row=1, column=0, sticky="w", padx=10, pady=(0, 10))
 
     current_theme_label = ttk.Label(tab_settings, text="Current theme: Light")
-    current_theme_label.pack(anchor="w", pady=(0, 10))
+    current_theme_label.grid(row=2, column=0, sticky="w", padx=10, pady=(0, 10))
 
     theme_var = tk.StringVar(value="light")
 
@@ -90,7 +93,7 @@ def build(tab_settings, style):
             current_theme_label.config(text="Current theme: Dark")
 
     options_frame = ttk.LabelFrame(tab_settings, text="Choose theme", padding=10)
-    options_frame.pack(anchor="w", fill="x")
+    options_frame.grid(row=3, column=0, sticky="ew", padx=10)
 
     ttk.Radiobutton(
         options_frame,
@@ -109,7 +112,7 @@ def build(tab_settings, style):
     ).grid(row=2, column=0, sticky="w")
 
     editor_frame = ttk.LabelFrame(tab_settings, text="Edit theme colors", padding=10)
-    editor_frame.pack(anchor="w", fill="x", pady=(10, 0))
+    editor_frame.grid(row=4, column=0, sticky="ew", padx=10, pady=(10, 0))
 
     color_fields = [
         ("bg", "Background"),
@@ -169,5 +172,7 @@ def build(tab_settings, style):
     ttk.Button(actions, text="Reset defaults", command=reset_defaults).grid(row=0, column=1)
 
     apply_theme(theme_var.get())
+
+    tab_settings.grid_columnconfigure(0, weight=1)
 
     return {"apply_theme": apply_theme}
