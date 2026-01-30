@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 
 from db import execute
+from i18n import t
 
 
 def build(tab_attendance):
@@ -9,7 +10,7 @@ def build(tab_attendance):
      #   row=0, column=0, columnspan=3, sticky="w", padx=10, pady=10
     #)
     
-    attendance_frame = ttk.LabelFrame(tab_attendance, text="Attendance", padding=10)
+    attendance_frame = ttk.LabelFrame(tab_attendance, text=t("label.attendance"), padding=10)
     attendance_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
     tab_attendance.grid_rowconfigure(1, weight=1)
     tab_attendance.grid_columnconfigure(0, weight=1)
@@ -68,21 +69,21 @@ def build(tab_attendance):
         for r in attendance_tree.get_children():
             attendance_tree.delete(r)
         if not rows:
-            attendance_tree.insert("", tk.END, values=("No data", "", ""))
+            attendance_tree.insert("", tk.END, values=(t("label.no_data"), "", ""))
             return
         for row in rows:
             attendance_tree.insert("", tk.END, values=row)
 
-    register_frame = ttk.LabelFrame(attendance_frame, text="Register Attendance", padding=10)
+    register_frame = ttk.LabelFrame(attendance_frame, text=t("label.register_attendance"), padding=10)
     register_frame.grid(row=0, column=0, sticky="ew", pady=5)
 
-    ttk.Label(register_frame, text="Session ID").grid(row=0, column=0, sticky="w")
+    ttk.Label(register_frame, text=t("label.session_id")).grid(row=0, column=0, sticky="w")
     ttk.Entry(register_frame, textvariable=session_id).grid(row=0, column=1, sticky="ew")
 
-    ttk.Label(register_frame, text="Student ID").grid(row=1, column=0, sticky="w")
+    ttk.Label(register_frame, text=t("label.student_id")).grid(row=1, column=0, sticky="w")
     ttk.Entry(register_frame, textvariable=student_id).grid(row=1, column=1, sticky="ew")
 
-    ttk.Label(register_frame, text="Status").grid(row=2, column=0, sticky="w")
+    ttk.Label(register_frame, text=t("label.status")).grid(row=2, column=0, sticky="w")
     ttk.Combobox(
         register_frame,
         textvariable=status,
@@ -90,7 +91,7 @@ def build(tab_attendance):
         state="readonly"
     ).grid(row=2, column=1, sticky="ew")
 
-    ttk.Label(register_frame, text="Source").grid(row=3, column=0, sticky="w")
+    ttk.Label(register_frame, text=t("label.source")).grid(row=3, column=0, sticky="w")
     ttk.Combobox(
         register_frame,
         textvariable=source,
@@ -100,21 +101,21 @@ def build(tab_attendance):
 
     ttk.Button(
         register_frame,
-        text="Register",
+        text=t("button.register"),
         command=register_attendance
     ).grid(row=4, column=0, columnspan=2, pady=5)
 
     register_frame.columnconfigure(1, weight=1)
 
-    search_frame = ttk.LabelFrame(attendance_frame, text="Search", padding=10)
+    search_frame = ttk.LabelFrame(attendance_frame, text=t("label.search"), padding=10)
     search_frame.grid(row=1, column=0, sticky="ew", pady=5)
 
     ttk.Entry(search_frame, textvariable=query_value).grid(row=0, column=0, sticky="ew", padx=5)
 
-    ttk.Button(search_frame, text="By Session", command=search_by_session) \
+    ttk.Button(search_frame, text=t("label.by_session"), command=search_by_session) \
         .grid(row=0, column=1, padx=5)
 
-    ttk.Button(search_frame, text="By Student", command=search_by_student) \
+    ttk.Button(search_frame, text=t("label.by_student"), command=search_by_student) \
         .grid(row=0, column=2, padx=5)
 
     search_frame.columnconfigure(0, weight=1)
@@ -126,9 +127,9 @@ def build(tab_attendance):
         height=12
     )
 
-    attendance_tree.heading("c1", text="Name / Class")
-    attendance_tree.heading("c2", text="Status / Date")
-    attendance_tree.heading("c3", text="Time")
+    attendance_tree.heading("c1", text=t("label.name_class"))
+    attendance_tree.heading("c2", text=t("label.status_date"))
+    attendance_tree.heading("c3", text=t("label.time"))
 
     attendance_tree.grid(row=3, column=0, sticky="nsew", pady=10)
 

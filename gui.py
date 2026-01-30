@@ -4,6 +4,7 @@ import traceback
 from tkinter import ttk, messagebox
 
 from version import __version__
+from i18n import init_i18n, t
 from ui import about, attendance, locations, reports, sessions, settings, students, teachers
 
 
@@ -15,8 +16,9 @@ def main():
     )
 
     try:
+        init_i18n()
         root = tk.Tk()
-        root.title("BJJ Academy Management")
+        root.title(t("app.title"))
         root.geometry("1400x850")
 
         notebook = ttk.Notebook(root)
@@ -33,16 +35,16 @@ def main():
         tab_settings = ttk.Frame(notebook, padding=10)
         tab_about = ttk.Frame(notebook, padding=10)
 
-        notebook.add(tab_students, text="Students")
-        notebook.add(tab_teachers, text="Teachers")
-        notebook.add(tab_locations, text="Locations")
-        notebook.add(tab_attendance, text="Attendance")
-        notebook.add(tab_sessions, text="Sessions")
-        notebook.add(tab_reports, text="Reports")
-        notebook.add(tab_settings, text="Themes")
-        notebook.add(tab_about, text="About / Config")
+        notebook.add(tab_students, text=t("tab.students"))
+        notebook.add(tab_teachers, text=t("tab.teachers"))
+        notebook.add(tab_locations, text=t("tab.locations"))
+        notebook.add(tab_attendance, text=t("tab.attendance"))
+        notebook.add(tab_sessions, text=t("tab.sessions"))
+        notebook.add(tab_reports, text=t("tab.reports"))
+        notebook.add(tab_settings, text=t("tab.settings"))
+        notebook.add(tab_about, text=t("tab.about"))
 
-        root.title(f"BJJ Academy Management v{__version__}")
+        root.title(f"{t('app.title')} v{__version__}")
 
         teachers_api = teachers.build(tab_teachers)
         locations_api = locations.build(tab_locations)

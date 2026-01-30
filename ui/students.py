@@ -8,6 +8,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from tkcalendar import DateEntry
 
 from db import execute
+from i18n import t
 from validation_middleware import (
     ValidationError,
     validate_required,
@@ -89,7 +90,7 @@ def build(tab_students):
     filter_frame = ttk.Frame(tab_students)
     filter_frame.grid(row=1, column=2, sticky="e", padx=10)
 
-    ttk.Label(filter_frame, text="Show").grid(row=0, column=0, padx=5)
+    ttk.Label(filter_frame, text=t("label.show")).grid(row=0, column=0, padx=5)
 
     cmb_filter = ttk.Combobox(
         filter_frame,
@@ -101,11 +102,11 @@ def build(tab_students):
     cmb_filter.grid(row=0, column=1)
 
     # ---------- Form ----------
-    form = ttk.LabelFrame(tab_students, text="Student Form", padding=10)
+    form = ttk.LabelFrame(tab_students, text=t("label.student_form"), padding=10)
     form.grid(row=1, column=0, sticky="nw")
 
     # ---------- Charts ----------
-    charts_frame = ttk.LabelFrame(tab_students, text="Statistics", padding=10)
+    charts_frame = ttk.LabelFrame(tab_students, text=t("label.statistics"), padding=10)
     charts_frame.grid(row=1, column=1, sticky="n", padx=15)
 
     chart_left = ttk.Frame(charts_frame)
@@ -115,7 +116,7 @@ def build(tab_students):
     chart_right.grid(row=0, column=1, padx=5)
 
     # ---------- Tree ----------
-    tree_frame = ttk.LabelFrame(tab_students, text="Students List", padding=10)
+    tree_frame = ttk.LabelFrame(tab_students, text=t("label.students_list"), padding=10)
     tree_frame.grid(row=2, column=0, columnspan=3, sticky="nsew")
 
     nav = ttk.Frame(tab_students)
@@ -178,10 +179,24 @@ def build(tab_students):
         ("Tax ID", st_taxid),
         ("Location", st_location),
     ]
+    label_map = {
+        "Name": "label.name",
+        "Sex": "label.sex",
+        "Direction": "label.direction",
+        "Postal Code": "label.postalcode",
+        "Belt": "label.belt",
+        "Email": "label.email",
+        "Phone": "label.phone",
+        "Phone2": "label.phone2",
+        "Weight (kg)": "label.weight",
+        "Country": "label.country",
+        "Tax ID": "label.taxid",
+        "Location": "label.location",
+    }
 
     location_cb = None
     for i, (lbl, var) in enumerate(fields):
-        ttk.Label(form, text=lbl).grid(row=i, column=0, sticky="w")
+        ttk.Label(form, text=t(label_map.get(lbl, lbl))).grid(row=i, column=0, sticky="w")
         if lbl == "Belt":
             ttk.Combobox(
                 form, textvariable=var,
@@ -206,7 +221,7 @@ def build(tab_students):
         else:
             ttk.Entry(form, textvariable=var, width=30).grid(row=i, column=1)
 
-    ttk.Label(form, text="Birthday").grid(row=len(fields), column=0, sticky="w")
+    ttk.Label(form, text=t("label.birthday")).grid(row=len(fields), column=0, sticky="w")
     st_birthday = DateEntry(form, date_pattern="yyyy-mm-dd", width=27)
     st_birthday.grid(row=len(fields), column=1)
 
@@ -232,19 +247,19 @@ def build(tab_students):
 
         total = active + inactive
         if total == 0:
-            ax.text(0.5, 0.5, "No data", ha="center", va="center")
-            ax.set_title("Students Status")
+            ax.text(0.5, 0.5, t("label.no_data"), ha="center", va="center")
+            ax.set_title(t("label.students_status"))
             ax.axis("off")
         else:
             ax.pie(
                 [active, inactive],
-                labels=["Active", "Inactive"],
+                labels=[t("label.active"), t("label.inactive")],
                 autopct="%1.0f%%",
                 startangle=90,
                 colors=["green", "red"],
                 wedgeprops=dict(width=0.4)
             )
-            ax.set_title("Students Status")
+            ax.set_title(t("label.students_status"))
 
         canvas = FigureCanvasTkAgg(fig, master=chart_left)
         canvas.draw()
@@ -258,13 +273,13 @@ def build(tab_students):
         ax = fig.add_subplot(111)
 
         if total == 0:
-            ax.text(0.5, 0.5, "No data", ha="center", va="center")
-            ax.set_title("Total Students")
+            ax.text(0.5, 0.5, t("label.no_data"), ha="center", va="center")
+            ax.set_title(t("label.total_students"))
             ax.axis("off")
         else:
             ax.plot([0, 1], [0, total], marker="o")
-            ax.set_title("Total Students")
-            ax.set_ylabel("Count")
+            ax.set_title(t("label.total_students"))
+            ax.set_ylabel(t("label.count"))
             ax.set_xticks([])
 
         canvas = FigureCanvasTkAgg(fig, master=chart_right)
@@ -425,11 +440,11 @@ def build(tab_students):
     btns = ttk.Frame(form)
     btns.grid(row=len(fields)+1, column=0, columnspan=2, pady=10)
 
-    btn_register = ttk.Button(btns, text="Register", command=register_student)
-    btn_update = ttk.Button(btns, text="Update", command=update_student)
-    btn_deactivate = ttk.Button(btns, text="Deactivate", command=deactivate_student)
-    btn_reactivate = ttk.Button(btns, text="Reactivate", command=reactivate_student)
-    btn_clear = ttk.Button(btns, text="Clear", command=clear_student_form)
+    btn_register = ttk.Button(btns, text=t("button.register"), command=register_student)
+    btn_update = ttk.Button(btns, text=t("button.update"), command=update_student)
+    btn_deactivate = ttk.Button(btns, text=t("button.deactivate"), command=deactivate_student)
+    btn_reactivate = ttk.Button(btns, text=t("button.reactivate"), command=reactivate_student)
+    btn_clear = ttk.Button(btns, text=t("button.clear"), command=clear_student_form)
 
     btn_register.grid(row=0, column=0, padx=5)
     btn_update.grid(row=0, column=1, padx=5)
@@ -448,8 +463,25 @@ def build(tab_students):
         columns=("id", "name", "sex", "direction", "postalcode", "belt", "email", "phone", "phone2", "weight", "country", "taxid", "location", "birthday", "status"),
         show="headings"
     )
+    header_map = {
+        "id": "label.id",
+        "name": "label.name",
+        "sex": "label.sex",
+        "direction": "label.direction",
+        "postalcode": "label.postalcode",
+        "belt": "label.belt",
+        "email": "label.email",
+        "phone": "label.phone",
+        "phone2": "label.phone2",
+        "weight": "label.weight",
+        "country": "label.country",
+        "taxid": "label.taxid",
+        "location": "label.location",
+        "birthday": "label.birthday",
+        "status": "label.status",
+    }
     for c in students_tree["columns"]:
-        students_tree.heading(c, text=c)
+        students_tree.heading(c, text=t(header_map.get(c, c)))
 
     students_tree.tag_configure("active", foreground="green")
     students_tree.tag_configure("inactive", foreground="red")
@@ -523,15 +555,15 @@ def build(tab_students):
         if not rows:
             students_tree.insert(
                 "", tk.END,
-                values=("", "No data", "", "", "", "", "", "", "", "", "", "", "", "", ""),
+                values=("", t("label.no_data"), "", "", "", "", "", "", "", "", "", "", "", "", ""),
                 tags=("inactive",)
             )
-            lbl_page.config(text="Page 1 / 1")
+            lbl_page.config(text=t("label.page", page=1, pages=1))
             return
 
         for row in rows:
             active = row[14]
-            status = "Active" if active else "Inactive"
+            status = t("label.active") if active else t("label.inactive")
             tag = "active" if active else "inactive"
             students_tree.insert(
                 "", tk.END,
@@ -541,7 +573,7 @@ def build(tab_students):
 
         total = count_students()
         pages = max(1, (total + PAGE_SIZE_STUDENTS - 1) // PAGE_SIZE_STUDENTS)
-        lbl_page.config(text=f"Page {current_student_page + 1} / {pages}")
+        lbl_page.config(text=t("label.page", page=current_student_page + 1, pages=pages))
 
     # Advance to the next page of students.
     def next_student():
@@ -556,10 +588,10 @@ def build(tab_students):
             current_student_page -= 1
             load_students_view()
 
-    ttk.Button(nav, text="Prev", command=prev_student).grid(row=0, column=0, padx=5)
-    lbl_page = ttk.Label(nav, text="Page 1 / 1")
+    ttk.Button(nav, text=t("button.prev"), command=prev_student).grid(row=0, column=0, padx=5)
+    lbl_page = ttk.Label(nav, text=t("label.page", page=1, pages=1))
     lbl_page.grid(row=0, column=1, padx=10)
-    ttk.Button(nav, text="Next", command=next_student).grid(row=0, column=2, padx=5)
+    ttk.Button(nav, text=t("button.next"), command=next_student).grid(row=0, column=2, padx=5)
 
     filter_active.trace_add("write", lambda *args: load_students_view())
 

@@ -3,6 +3,7 @@ from tkinter import ttk, messagebox
 from datetime import datetime
 
 from db import execute
+from i18n import t
 
 
 def build(tab_reports):
@@ -10,7 +11,7 @@ def build(tab_reports):
      #   row=0, column=0, columnspan=3, sticky="w", padx=10, pady=10
     #)
     
-    report_frame = ttk.LabelFrame(tab_reports, text="Smart Search", padding=10)
+    report_frame = ttk.LabelFrame(tab_reports, text=t("label.smart_search"), padding=10)
     report_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
     tab_reports.grid_rowconfigure(1, weight=1)
     tab_reports.grid_columnconfigure(0, weight=1)
@@ -19,14 +20,16 @@ def build(tab_reports):
     report_frame.rowconfigure(2, weight=1)
 
     search_var = tk.StringVar()
-    location_var = tk.StringVar(value="All Locations")
-    location_map = {"All Locations": None, "No Location": "NONE"}
+    all_locations_label = t("label.all_locations")
+    no_location_label = t("label.no_location")
+    location_var = tk.StringVar(value=all_locations_label)
+    location_map = {all_locations_label: None, no_location_label: "NONE"}
     current_page = {"value": 0}
     total_rows = {"value": 0}
     PAGE_SIZE = 50
 
-    ttk.Label(report_frame, text="Name").grid(row=0, column=0, sticky="w")
-    ttk.Label(report_frame, text="Location").grid(row=0, column=1, sticky="w", padx=(8, 0))
+    ttk.Label(report_frame, text=t("label.name")).grid(row=0, column=0, sticky="w")
+    ttk.Label(report_frame, text=t("label.location")).grid(row=0, column=1, sticky="w", padx=(8, 0))
 
     search_entry = ttk.Entry(report_frame, textvariable=search_var)
     search_entry.grid(row=1, column=0, sticky="ew", padx=(0, 8))
@@ -39,10 +42,10 @@ def build(tab_reports):
     )
     location_cb.grid(row=1, column=1, sticky="ew", padx=(8, 0))
 
-    results_btn = ttk.Button(report_frame, text="Results: 0", state="disabled")
+    results_btn = ttk.Button(report_frame, text=t("label.results", count=0), state="disabled")
     results_btn.grid(row=3, column=0, sticky="w", pady=(6, 0))
 
-    last_query_lbl = ttk.Label(report_frame, text="Last query: --")
+    last_query_lbl = ttk.Label(report_frame, text=t("label.last_query", time="--"))
     last_query_lbl.grid(row=3, column=1, columnspan=2, sticky="e", pady=(6, 0))
 
     def _build_filters():
@@ -67,7 +70,7 @@ def build(tab_reports):
     def _update_pager():
         total = total_rows["value"]
         pages = max(1, (total + PAGE_SIZE - 1) // PAGE_SIZE)
-        page_label.config(text=f"Page {current_page['value'] + 1} / {pages}")
+        page_label.config(text=t("label.page", page=current_page["value"] + 1, pages=pages))
         btn_prev.config(state="normal" if current_page["value"] > 0 else "disabled")
         btn_next.config(state="normal" if current_page["value"] + 1 < pages else "disabled")
 
@@ -104,35 +107,42 @@ def build(tab_reports):
 
         results_tree.delete(*results_tree.get_children())
         if not rows:
-            results_tree.insert("", tk.END, values=("No data", "", "", "", ""))
-            results_btn.config(text="Results: 0")
-            last_query_lbl.config(text=f"Last query: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            results_tree.insert("", tk.END, values=(t("label.no_data"), "", "", "", ""))
+            results_btn.config(text=t("label.results", count=0))
+            last_query_lbl.config(text=t("label.last_query", time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
             _update_pager()
             return
         for r in rows:
             results_tree.insert("", tk.END, values=r)
-        results_btn.config(text=f"Results: {total_rows['value']}")
-        last_query_lbl.config(text=f"Last query: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        results_btn.config(text=t("label.results", count=total_rows["value"]))
+        last_query_lbl.config(text=t("label.last_query", time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
         _update_pager()
 
-    ttk.Button(report_frame, text="Search", command=run_search).grid(row=1, column=2, sticky="e", padx=(8, 0))
+    ttk.Button(report_frame, text=t("button.search"), command=run_search).grid(row=1, column=2, sticky="e", padx=(8, 0))
 
     results_tree = ttk.Treeview(
         report_frame,
         columns=("type", "name", "email", "phone", "location"),
         show="headings"
     )
+    header_map = {
+        "type": "label.type",
+        "name": "label.name",
+        "email": "label.email",
+        "phone": "label.phone",
+        "location": "label.location",
+    }
     for c in results_tree["columns"]:
-        results_tree.heading(c, text=c)
+        results_tree.heading(c, text=t(header_map.get(c, c)))
 
     results_tree.grid(row=2, column=0, columnspan=3, sticky="nsew", pady=10)
 
     pager = ttk.Frame(report_frame)
     pager.grid(row=4, column=0, columnspan=3, pady=(6, 0))
 
-    btn_prev = ttk.Button(pager, text="Prev", command=lambda: _change_page(-1))
-    btn_next = ttk.Button(pager, text="Next", command=lambda: _change_page(1))
-    page_label = ttk.Label(pager, text="Page 1 / 1")
+    btn_prev = ttk.Button(pager, text=t("button.prev"), command=lambda: _change_page(-1))
+    btn_next = ttk.Button(pager, text=t("button.next"), command=lambda: _change_page(1))
+    page_label = ttk.Label(pager, text=t("label.page", page=1, pages=1))
 
     btn_prev.grid(row=0, column=0, padx=5)
     page_label.grid(row=0, column=1, padx=10)
@@ -148,7 +158,7 @@ def build(tab_reports):
             FROM t_locations
             ORDER BY name
         """)
-        options = ["All Locations", "No Location"]
+        options = [all_locations_label, no_location_label]
         for loc_id, name in rows:
             label = f"{name} (#{loc_id})"
             location_map[label] = loc_id

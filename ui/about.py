@@ -7,16 +7,19 @@ import tkinter as tk
 from tkinter import ttk
 
 from version import __version__
+from i18n import t
 
 
 def build(tab_about):
    # ttk.Label(tab_about, text="STUDENTS TAB OK", foreground="green").grid(
     #    row=0, column=0, columnspan=3, sticky="w", padx=10, pady=10
     #)
-    about_frame = ttk.LabelFrame(tab_about, text="System Configuration", padding=10)
+    about_frame = ttk.LabelFrame(tab_about, text=t("label.system_config"), padding=10)
     about_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
     tab_about.grid_rowconfigure(1, weight=1)
     tab_about.grid_columnconfigure(0, weight=1)
+
+    unknown_text = t("label.unknown")
 
     about_values = {
         "version": tk.StringVar(),
@@ -27,22 +30,22 @@ def build(tab_about):
         "os": tk.StringVar(),
     }
 
-    ttk.Label(about_frame, text="Software Version").grid(row=0, column=0, sticky="w", padx=5, pady=4)
+    ttk.Label(about_frame, text=t("label.software_version")).grid(row=0, column=0, sticky="w", padx=5, pady=4)
     ttk.Label(about_frame, textvariable=about_values["version"]).grid(row=0, column=1, sticky="w", padx=5, pady=4)
 
-    ttk.Label(about_frame, text="Hostname").grid(row=1, column=0, sticky="w", padx=5, pady=4)
+    ttk.Label(about_frame, text=t("label.hostname")).grid(row=1, column=0, sticky="w", padx=5, pady=4)
     ttk.Label(about_frame, textvariable=about_values["hostname"]).grid(row=1, column=1, sticky="w", padx=5, pady=4)
 
-    ttk.Label(about_frame, text="IP Address").grid(row=2, column=0, sticky="w", padx=5, pady=4)
+    ttk.Label(about_frame, text=t("label.ip_address")).grid(row=2, column=0, sticky="w", padx=5, pady=4)
     ttk.Label(about_frame, textvariable=about_values["ip"]).grid(row=2, column=1, sticky="w", padx=5, pady=4)
 
-    ttk.Label(about_frame, text="DNS Servers").grid(row=3, column=0, sticky="nw", padx=5, pady=4)
+    ttk.Label(about_frame, text=t("label.dns_servers")).grid(row=3, column=0, sticky="nw", padx=5, pady=4)
     ttk.Label(about_frame, textvariable=about_values["dns"], justify="left").grid(row=3, column=1, sticky="w", padx=5, pady=4)
 
-    ttk.Label(about_frame, text="Default Gateway").grid(row=4, column=0, sticky="w", padx=5, pady=4)
+    ttk.Label(about_frame, text=t("label.default_gateway")).grid(row=4, column=0, sticky="w", padx=5, pady=4)
     ttk.Label(about_frame, textvariable=about_values["gateway"]).grid(row=4, column=1, sticky="w", padx=5, pady=4)
 
-    ttk.Label(about_frame, text="Operating System").grid(row=5, column=0, sticky="w", padx=5, pady=4)
+    ttk.Label(about_frame, text=t("label.operating_system")).grid(row=5, column=0, sticky="w", padx=5, pady=4)
     ttk.Label(about_frame, textvariable=about_values["os"]).grid(row=5, column=1, sticky="w", padx=5, pady=4)
 
     about_frame.columnconfigure(1, weight=1)
@@ -77,16 +80,16 @@ def build(tab_about):
         dns_servers = _filter_ips(dns_servers)
 
         return {
-            "ip": ips[0] if ips else "Unknown",
-            "gateway": gateways[0] if gateways else "Unknown",
-            "dns": ", ".join(dns_servers) if dns_servers else "Unknown",
+            "ip": ips[0] if ips else unknown_text,
+            "gateway": gateways[0] if gateways else unknown_text,
+            "dns": ", ".join(dns_servers) if dns_servers else unknown_text,
         }
 
     def _collect_network_info():
         info = {
-            "ip": "Unknown",
-            "dns": "Unknown",
-            "gateway": "Unknown",
+            "ip": unknown_text,
+            "dns": unknown_text,
+            "gateway": unknown_text,
         }
 
         if os.name == "nt":
@@ -142,7 +145,7 @@ def build(tab_about):
         about_values["gateway"].set(net.get("gateway", "Unknown"))
         about_values["os"].set(f"{platform.system()} {platform.release()}")
 
-    ttk.Button(about_frame, text="Refresh", command=refresh_about_panel) \
+    ttk.Button(about_frame, text=t("button.refresh"), command=refresh_about_panel) \
         .grid(row=6, column=0, columnspan=2, pady=8, sticky="w")
 
     return {"refresh_about_panel": refresh_about_panel}

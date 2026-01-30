@@ -3,6 +3,7 @@ from tkinter import ttk, messagebox
 from tkcalendar import DateEntry
 
 from db import execute
+from i18n import t
 from validation_middleware import ValidationError, validate_required, validate_email
 from error_middleware import handle_db_error, log_validation_error
 
@@ -25,10 +26,10 @@ def build(tab_teachers):
     selected_teacher_active = None
 
     # ---------- Layout ----------
-    teachers_form = ttk.LabelFrame(tab_teachers, text="Teacher Form", padding=10)
+    teachers_form = ttk.LabelFrame(tab_teachers, text=t("label.teacher_form"), padding=10)
     teachers_form.grid(row=1, column=0, sticky="nw", padx=10)
 
-    teachers_list = ttk.LabelFrame(tab_teachers, text="Teachers List", padding=10)
+    teachers_list = ttk.LabelFrame(tab_teachers, text=t("label.teachers_list"), padding=10)
     teachers_list.grid(row=2, column=0, sticky="nsew", padx=10, pady=10)
 
     tab_teachers.grid_rowconfigure(2, weight=1)
@@ -43,9 +44,17 @@ def build(tab_teachers):
         ("Belt", tc_belt),
         ("Hire Date", tc_hire_date),
     ]
+    label_map = {
+        "Name": "label.name",
+        "Sex": "label.sex",
+        "Email": "label.email",
+        "Phone": "label.phone",
+        "Belt": "label.belt",
+        "Hire Date": "label.hire_date",
+    }
 
     for i, (lbl, var) in enumerate(fields):
-        ttk.Label(teachers_form, text=lbl).grid(row=i, column=0, sticky="w")
+        ttk.Label(teachers_form, text=t(label_map.get(lbl, lbl))).grid(row=i, column=0, sticky="w")
         if lbl == "Belt":
             ttk.Combobox(
                 teachers_form,
@@ -73,10 +82,10 @@ def build(tab_teachers):
     btns = ttk.Frame(teachers_form)
     btns.grid(row=len(fields), column=0, columnspan=2, pady=10)
 
-    tc_btn_add = ttk.Button(btns, text="Register")
-    tc_btn_update = ttk.Button(btns, text="Update")
-    tc_btn_deactivate = ttk.Button(btns, text="Deactivate")
-    tc_btn_reactivate = ttk.Button(btns, text="Reactivate")
+    tc_btn_add = ttk.Button(btns, text=t("button.register"))
+    tc_btn_update = ttk.Button(btns, text=t("button.update"))
+    tc_btn_deactivate = ttk.Button(btns, text=t("button.deactivate"))
+    tc_btn_reactivate = ttk.Button(btns, text=t("button.reactivate"))
 
     tc_btn_add.grid(row=0, column=0, padx=4)
     tc_btn_update.grid(row=0, column=1, padx=4)
@@ -93,8 +102,18 @@ def build(tab_teachers):
         show="headings"
     )
 
+    header_map = {
+        "id": "label.id",
+        "name": "label.name",
+        "sex": "label.sex",
+        "email": "label.email",
+        "phone": "label.phone",
+        "belt": "label.belt",
+        "hire_date": "label.hire_date",
+        "status": "label.status",
+    }
     for c in teachers_tree["columns"]:
-        teachers_tree.heading(c, text=c)
+        teachers_tree.heading(c, text=t(header_map.get(c, c)))
     teachers_tree.column("hire_date", width=0, minwidth=0, stretch=False)
 
     teachers_tree.tag_configure("active", foreground="green")
@@ -118,13 +137,13 @@ def build(tab_teachers):
         if not rows:
             teachers_tree.insert(
                 "", tk.END,
-                values=("", "No data", "", "", "", "", "", ""),
+                values=("", t("label.no_data"), "", "", "", "", "", ""),
                 tags=("inactive",)
             )
             return
 
         for r in rows:
-            status = "Active" if r[7] else "Inactive"
+            status = t("label.active") if r[7] else t("label.inactive")
             tag = "active" if r[7] else "inactive"
             teachers_tree.insert(
                 "", tk.END,

@@ -1,5 +1,7 @@
 import tkinter as tk
-from tkinter import ttk, colorchooser
+from tkinter import ttk, colorchooser, messagebox
+
+from i18n import t, get_language, set_language
 
 
 def _apply_palette(style, palette):
@@ -47,10 +49,13 @@ def build(tab_settings, style):
     #)
     root = tab_settings.winfo_toplevel()
 
-    header = ttk.Label(tab_settings, text="Theme Settings", font=("Segoe UI", 12, "bold"))
+    header = ttk.Label(tab_settings, text=t("settings.header"), font=("Segoe UI", 12, "bold"))
     header.grid(row=1, column=0, sticky="w", padx=10, pady=(0, 10))
 
-    current_theme_label = ttk.Label(tab_settings, text="Current theme: Light")
+    current_theme_label = ttk.Label(
+        tab_settings,
+        text=t("settings.current_theme", theme=t("theme.light")),
+    )
     current_theme_label.grid(row=2, column=0, sticky="w", padx=10, pady=(0, 10))
 
     theme_var = tk.StringVar(value="light")
@@ -85,19 +90,19 @@ def build(tab_settings, style):
             style.theme_use("clam")
             _apply_palette(style, palettes["light"])
             root.configure(bg=palettes["light"]["bg"])
-            current_theme_label.config(text="Current theme: Light")
+            current_theme_label.config(text=t("settings.current_theme", theme=t("theme.light")))
         elif value == "dark":
             style.theme_use("clam")
             _apply_palette(style, palettes["dark"])
             root.configure(bg=palettes["dark"]["bg"])
-            current_theme_label.config(text="Current theme: Dark")
+            current_theme_label.config(text=t("settings.current_theme", theme=t("theme.dark")))
 
-    options_frame = ttk.LabelFrame(tab_settings, text="Choose theme", padding=10)
+    options_frame = ttk.LabelFrame(tab_settings, text=t("settings.choose_theme"), padding=10)
     options_frame.grid(row=3, column=0, sticky="ew", padx=10)
 
     ttk.Radiobutton(
         options_frame,
-        text="Light",
+        text=t("theme.light"),
         variable=theme_var,
         value="light",
         command=lambda: apply_theme(theme_var.get()),
@@ -105,23 +110,53 @@ def build(tab_settings, style):
 
     ttk.Radiobutton(
         options_frame,
-        text="Dark",
+        text=t("theme.dark"),
         variable=theme_var,
         value="dark",
         command=lambda: apply_theme(theme_var.get()),
     ).grid(row=2, column=0, sticky="w")
 
-    editor_frame = ttk.LabelFrame(tab_settings, text="Edit theme colors", padding=10)
-    editor_frame.grid(row=4, column=0, sticky="ew", padx=10, pady=(10, 0))
+    language_frame = ttk.LabelFrame(tab_settings, text=t("settings.language.label"), padding=10)
+    language_frame.grid(row=4, column=0, sticky="ew", padx=10, pady=(0, 10))
+
+    language_options = {
+        "English": "en",
+        "Deutsch (AT)": "de-AT",
+    }
+
+    language_cb = ttk.Combobox(
+        language_frame,
+        state="readonly",
+        values=list(language_options.keys()),
+        width=20,
+    )
+    current_lang_label = next(
+        (label for label, code in language_options.items() if code == get_language()),
+        "English",
+    )
+    language_cb.set(current_lang_label)
+    language_cb.grid(row=0, column=0, sticky="w")
+
+    def apply_language_change(event=None):
+        selected_label = language_cb.get()
+        code = language_options.get(selected_label, "en")
+        if code != get_language():
+            set_language(code)
+            messagebox.showinfo(t("settings.language.label"), t("settings.language.note"))
+
+    language_cb.bind("<<ComboboxSelected>>", apply_language_change)
+
+    editor_frame = ttk.LabelFrame(tab_settings, text=t("settings.edit_theme_colors"), padding=10)
+    editor_frame.grid(row=5, column=0, sticky="ew", padx=10, pady=(10, 0))
 
     color_fields = [
-        ("bg", "Background"),
-        ("fg", "Text"),
-        ("field_bg", "Field background"),
-        ("btn_bg", "Button background"),
-        ("btn_fg", "Button text"),
-        ("active_bg", "Button hover bg"),
-        ("active_fg", "Button hover text"),
+        ("bg", t("settings.color.bg")),
+        ("fg", t("settings.color.fg")),
+        ("field_bg", t("settings.color.field_bg")),
+        ("btn_bg", t("settings.color.btn_bg")),
+        ("btn_fg", t("settings.color.btn_fg")),
+        ("active_bg", t("settings.color.active_bg")),
+        ("active_fg", t("settings.color.active_fg")),
     ]
 
     palette_vars = {
@@ -140,7 +175,7 @@ def build(tab_settings, style):
             )
             ttk.Button(
                 parent,
-                text="Pick",
+                text=t("settings.pick"),
                 command=lambda k=key, t=theme_key: _pick_color(t, k),
                 width=6,
             ).grid(row=row_start + i, column=2, sticky="w", padx=(6, 0))
@@ -151,8 +186,8 @@ def build(tab_settings, style):
         if picked and picked[1]:
             palette_vars[theme_key][key].set(picked[1])
 
-    _render_palette_editor(editor_frame, "light", "Light theme", 0)
-    _render_palette_editor(editor_frame, "dark", "Dark theme", len(color_fields) + 2)
+    _render_palette_editor(editor_frame, "light", t("theme.light"), 0)
+    _render_palette_editor(editor_frame, "dark", t("theme.dark"), len(color_fields) + 2)
 
     def apply_custom_colors():
         for theme_key in ("light", "dark"):
@@ -168,8 +203,8 @@ def build(tab_settings, style):
 
     actions = ttk.Frame(editor_frame)
     actions.grid(row=(len(color_fields) * 2 + 4), column=0, columnspan=2, sticky="w", pady=(8, 0))
-    ttk.Button(actions, text="Apply colors", command=apply_custom_colors).grid(row=0, column=0, padx=(0, 8))
-    ttk.Button(actions, text="Reset defaults", command=reset_defaults).grid(row=0, column=1)
+    ttk.Button(actions, text=t("settings.apply_colors"), command=apply_custom_colors).grid(row=0, column=0, padx=(0, 8))
+    ttk.Button(actions, text=t("settings.reset_defaults"), command=reset_defaults).grid(row=0, column=1)
 
     apply_theme(theme_var.get())
 

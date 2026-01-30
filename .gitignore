@@ -18,6 +18,7 @@ key/
 
 # Logs
 *.log
+app_settings.json
 
 # Builds
 dist/

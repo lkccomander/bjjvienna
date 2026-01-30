@@ -5,6 +5,7 @@ from datetime import date
 from tkcalendar import DateEntry
 
 from db import execute
+from i18n import t
 from validation_middleware import ValidationError, validate_required
 from error_middleware import handle_db_error, log_validation_error
 
@@ -33,16 +34,16 @@ def build(tab_sessions):
     #    row=0, column=0, columnspan=3, sticky="w", padx=10, pady=10
     #)
     _ensure_session_location_schema()
-    sessions_form_frame = ttk.LabelFrame(tab_sessions, text="Sessions", padding=10)
+    sessions_form_frame = ttk.LabelFrame(tab_sessions, text=t("label.sessions"), padding=10)
     sessions_form_frame.grid(row=1, column=1, sticky="ne", padx=10, pady=5)
 
-    classes_form_frame = ttk.LabelFrame(tab_sessions, text="Classes", padding=10)
+    classes_form_frame = ttk.LabelFrame(tab_sessions, text=t("label.classes"), padding=10)
     classes_form_frame.grid(row=1, column=0, sticky="nw", padx=10, pady=5)
 
-    classes_list_frame = ttk.LabelFrame(tab_sessions, text="Classes List", padding=10)
+    classes_list_frame = ttk.LabelFrame(tab_sessions, text=t("label.classes_list"), padding=10)
     classes_list_frame.grid(row=2, column=0, columnspan=2, sticky="nsew", padx=10, pady=5)
 
-    sessions_list_frame = ttk.LabelFrame(tab_sessions, text="Sessions List", padding=10)
+    sessions_list_frame = ttk.LabelFrame(tab_sessions, text=t("label.sessions_list"), padding=10)
     sessions_list_frame.grid(row=3, column=0, columnspan=2, sticky="nsew", padx=10, pady=5)
 
     tab_sessions.grid_rowconfigure(2, weight=1)
@@ -80,9 +81,15 @@ def build(tab_sessions):
         ("Duration (min)", class_duration),
         ("Coach", class_coach)
     ]
+    class_label_map = {
+        "Name": "label.name",
+        "Belt Level": "label.belt_level",
+        "Duration (min)": "label.duration_min",
+        "Coach": "label.coach",
+    }
 
     for i, (lbl, var) in enumerate(class_fields):
-        ttk.Label(classes_form_frame, text=lbl).grid(row=i, column=0, sticky="w")
+        ttk.Label(classes_form_frame, text=t(class_label_map.get(lbl, lbl))).grid(row=i, column=0, sticky="w")
         if lbl == "Belt Level":
             ttk.Combobox(
                 classes_form_frame,
@@ -100,11 +107,11 @@ def build(tab_sessions):
     class_btns = ttk.Frame(classes_form_frame)
     class_btns.grid(row=len(class_fields), column=0, columnspan=2, pady=10)
 
-    btn_class_add = ttk.Button(class_btns, text="Add")
-    btn_class_update = ttk.Button(class_btns, text="Update")
-    btn_class_deactivate = ttk.Button(class_btns, text="Deactivate")
-    btn_class_reactivate = ttk.Button(class_btns, text="Reactivate")
-    btn_class_clear = ttk.Button(class_btns, text="Clear")
+    btn_class_add = ttk.Button(class_btns, text=t("button.add"))
+    btn_class_update = ttk.Button(class_btns, text=t("button.update"))
+    btn_class_deactivate = ttk.Button(class_btns, text=t("button.deactivate"))
+    btn_class_reactivate = ttk.Button(class_btns, text=t("button.reactivate"))
+    btn_class_clear = ttk.Button(class_btns, text=t("button.clear"))
 
     btn_class_add.grid(row=0, column=0, padx=4)
     btn_class_update.grid(row=0, column=1, padx=4)
@@ -121,29 +128,37 @@ def build(tab_sessions):
         columns=("id", "name", "belt", "coach", "duration", "status"),
         show="headings"
     )
+    classes_header_map = {
+        "id": "label.id",
+        "name": "label.name",
+        "belt": "label.belt_level",
+        "coach": "label.coach",
+        "duration": "label.duration_min",
+        "status": "label.status",
+    }
     for c in classes_tree["columns"]:
-        classes_tree.heading(c, text=c)
+        classes_tree.heading(c, text=t(classes_header_map.get(c, c)))
 
     classes_tree.tag_configure("active", foreground="green")
     classes_tree.tag_configure("inactive", foreground="red")
     classes_tree.pack(fill=tk.BOTH, expand=True)
 
     # ---------- Session Form ----------
-    ttk.Label(sessions_form_frame, text="Class").grid(row=0, column=0, sticky="w")
+    ttk.Label(sessions_form_frame, text=t("label.class")).grid(row=0, column=0, sticky="w")
     session_class_cb = ttk.Combobox(sessions_form_frame, textvariable=session_class, state="readonly", width=25)
     session_class_cb.grid(row=0, column=1)
 
-    ttk.Label(sessions_form_frame, text="Date").grid(row=1, column=0, sticky="w")
+    ttk.Label(sessions_form_frame, text=t("label.date")).grid(row=1, column=0, sticky="w")
     session_date = DateEntry(sessions_form_frame, date_pattern="yyyy-mm-dd", width=22)
     session_date.grid(row=1, column=1)
 
-    ttk.Label(sessions_form_frame, text="Start Time (HH:MM)").grid(row=2, column=0, sticky="w")
+    ttk.Label(sessions_form_frame, text=t("label.start_time")).grid(row=2, column=0, sticky="w")
     ttk.Entry(sessions_form_frame, textvariable=session_start, width=25).grid(row=2, column=1)
 
-    ttk.Label(sessions_form_frame, text="End Time (HH:MM)").grid(row=3, column=0, sticky="w")
+    ttk.Label(sessions_form_frame, text=t("label.end_time")).grid(row=3, column=0, sticky="w")
     ttk.Entry(sessions_form_frame, textvariable=session_end, width=25).grid(row=3, column=1)
 
-    ttk.Label(sessions_form_frame, text="Location").grid(row=4, column=0, sticky="w")
+    ttk.Label(sessions_form_frame, text=t("label.location")).grid(row=4, column=0, sticky="w")
     session_location_cb = ttk.Combobox(
         sessions_form_frame,
         textvariable=session_location,
@@ -155,11 +170,11 @@ def build(tab_sessions):
     session_btns = ttk.Frame(sessions_form_frame)
     session_btns.grid(row=5, column=0, columnspan=2, pady=10)
 
-    btn_session_add = ttk.Button(session_btns, text="Add")
-    btn_session_update = ttk.Button(session_btns, text="Update")
-    btn_session_cancel = ttk.Button(session_btns, text="Cancel")
-    btn_session_restore = ttk.Button(session_btns, text="Restore")
-    btn_session_clear = ttk.Button(session_btns, text="Clear")
+    btn_session_add = ttk.Button(session_btns, text=t("button.add"))
+    btn_session_update = ttk.Button(session_btns, text=t("button.update"))
+    btn_session_cancel = ttk.Button(session_btns, text=t("button.cancel"))
+    btn_session_restore = ttk.Button(session_btns, text=t("button.restore"))
+    btn_session_clear = ttk.Button(session_btns, text=t("button.clear"))
 
     btn_session_add.grid(row=0, column=0, padx=4)
     btn_session_update.grid(row=0, column=1, padx=4)
@@ -176,8 +191,17 @@ def build(tab_sessions):
         columns=("id", "class", "date", "start", "end", "location", "status"),
         show="headings"
     )
+    sessions_header_map = {
+        "id": "label.id",
+        "class": "label.class",
+        "date": "label.date",
+        "start": "label.start_time_short",
+        "end": "label.end_time_short",
+        "location": "label.location",
+        "status": "label.status",
+    }
     for c in sessions_tree["columns"]:
-        sessions_tree.heading(c, text=c)
+        sessions_tree.heading(c, text=t(sessions_header_map.get(c, c)))
 
     sessions_tree.tag_configure("scheduled", foreground="green")
     sessions_tree.tag_configure("cancelled", foreground="red")
@@ -279,13 +303,13 @@ def build(tab_sessions):
         if not rows:
             classes_tree.insert(
                 "", tk.END,
-                values=("", "No data", "", "", "", ""),
+                values=("", t("label.no_data"), "", "", "", ""),
                 tags=("inactive",)
             )
             refresh_class_options()
             return
         for r in rows:
-            status = "Active" if r[4] else "Inactive"
+            status = t("label.active") if r[4] else t("label.inactive")
             tag = "active" if r[4] else "inactive"
             classes_tree.insert(
                 "", tk.END,
@@ -307,12 +331,12 @@ def build(tab_sessions):
         if not rows:
             sessions_tree.insert(
                 "", tk.END,
-                values=("", "No data", "", "", "", "", ""),
+                values=("", t("label.no_data"), "", "", "", "", ""),
                 tags=("cancelled",)
             )
             return
         for r in rows:
-            status = "Cancelled" if r[6] else "Scheduled"
+            status = t("label.cancelled") if r[6] else t("label.scheduled")
             tag = "cancelled" if r[6] else "scheduled"
             sessions_tree.insert(
                 "", tk.END,

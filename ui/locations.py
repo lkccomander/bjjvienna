@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 
 from db import execute
+from i18n import t
 from validation_middleware import ValidationError, validate_required
 from error_middleware import handle_db_error, log_validation_error
 
@@ -52,10 +53,10 @@ def build(tab_locations):
     selected_location_id = None
     selected_location_active = None
 
-    locations_form = ttk.LabelFrame(tab_locations, text="Location Form", padding=10)
+    locations_form = ttk.LabelFrame(tab_locations, text=t("label.location_form"), padding=10)
     locations_form.grid(row=1, column=0, sticky="nw", padx=10)
 
-    locations_list = ttk.LabelFrame(tab_locations, text="Locations List", padding=10)
+    locations_list = ttk.LabelFrame(tab_locations, text=t("label.locations_list"), padding=10)
     locations_list.grid(row=2, column=0, sticky="nsew", padx=10, pady=10)
 
     tab_locations.grid_rowconfigure(2, weight=1)
@@ -66,19 +67,24 @@ def build(tab_locations):
         ("Phone", loc_phone),
         ("Address", loc_address),
     ]
+    label_map = {
+        "Name": "label.name",
+        "Phone": "label.phone",
+        "Address": "label.address",
+    }
 
     for i, (lbl, var) in enumerate(fields):
-        ttk.Label(locations_form, text=lbl).grid(row=i, column=0, sticky="w")
+        ttk.Label(locations_form, text=t(label_map.get(lbl, lbl))).grid(row=i, column=0, sticky="w")
         ttk.Entry(locations_form, textvariable=var, width=30).grid(row=i, column=1)
 
     btns = ttk.Frame(locations_form)
     btns.grid(row=len(fields), column=0, columnspan=2, pady=10)
 
-    btn_loc_add = ttk.Button(btns, text="Add")
-    btn_loc_update = ttk.Button(btns, text="Update")
-    btn_loc_deactivate = ttk.Button(btns, text="Deactivate")
-    btn_loc_reactivate = ttk.Button(btns, text="Reactivate")
-    btn_loc_clear = ttk.Button(btns, text="Clear")
+    btn_loc_add = ttk.Button(btns, text=t("button.add"))
+    btn_loc_update = ttk.Button(btns, text=t("button.update"))
+    btn_loc_deactivate = ttk.Button(btns, text=t("button.deactivate"))
+    btn_loc_reactivate = ttk.Button(btns, text=t("button.reactivate"))
+    btn_loc_clear = ttk.Button(btns, text=t("button.clear"))
 
     btn_loc_add.grid(row=0, column=0, padx=4)
     btn_loc_update.grid(row=0, column=1, padx=4)
@@ -95,8 +101,15 @@ def build(tab_locations):
         show="headings"
     )
 
+    header_map = {
+        "id": "label.id",
+        "name": "label.name",
+        "phone": "label.phone",
+        "address": "label.address",
+        "status": "label.status",
+    }
     for c in locations_tree["columns"]:
-        locations_tree.heading(c, text=c)
+        locations_tree.heading(c, text=t(header_map.get(c, c)))
 
     locations_tree.tag_configure("active", foreground="green")
     locations_tree.tag_configure("inactive", foreground="red")
@@ -113,12 +126,12 @@ def build(tab_locations):
         if not rows:
             locations_tree.insert(
                 "", tk.END,
-                values=("", "No data", "", "", ""),
+                values=("", t("label.no_data"), "", "", ""),
                 tags=("inactive",)
             )
             return
         for r in rows:
-            status = "Active" if r[4] else "Inactive"
+            status = t("label.active") if r[4] else t("label.inactive")
             tag = "active" if r[4] else "inactive"
             locations_tree.insert(
                 "", tk.END,
