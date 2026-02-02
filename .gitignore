@@ -29,4 +29,5 @@ build/
 .vscode/
 
 # Extra
-.webp
+*.webp
+*.csv
