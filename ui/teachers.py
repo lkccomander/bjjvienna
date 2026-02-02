@@ -121,6 +121,10 @@ def build(tab_teachers):
 
     teachers_tree.pack(fill=tk.BOTH, expand=True)
 
+    x_scroll = ttk.Scrollbar(teachers_list, orient="horizontal", command=teachers_tree.xview)
+    teachers_tree.configure(xscrollcommand=x_scroll.set)
+    x_scroll.pack(fill=tk.X)
+
     # =====================================================
     # DB LOADERS
     # =====================================================

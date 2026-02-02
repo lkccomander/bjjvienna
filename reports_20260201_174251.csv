@@ -1,0 +1,10 @@
+Type,Name,Email,Phone,Location,Newsletter,Status
+Student,Arturo,jsj@nkjd.com,293494949,Vienna - TaborStrabe,Yes,Inactive
+Student,Carlos Silva,carlos.silva@example.com,436501998877,Vienna - TaborStrabe,Yes,Inactive
+Student,Diego Pais,loadtest.student0500@example.com,833652147,Vienna - TaborStrabe,Yes,Active
+Student,Fernanda,student1@demo.at,None,RENZO GRACIE NUSSDORFER,Yes,Active
+Student,juancho,loadtest.student0481@example.com,None,Vienna - TaborStrabe,Yes,Active
+Student,Lucas Pereira,lucas.pereira3@example.com,436601112233,Vienna - TaborStrabe,Yes,Active
+Student,Lucas Pereira,lucas.pereira@example.com,436601112233,RENZO GRACIE NUSSDORFER,No,Active
+Student,Lucas Pereira,lucas.pereira2@example.com,436601112233,Vienna - TaborStrabe,Yes,Active
+Student,Martin Huber,martin.huber@example.com,+436991234567,Vienna - TaborStrabe,Yes,Inactive

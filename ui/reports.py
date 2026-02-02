@@ -1,9 +1,42 @@
+import csv
+import os
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
 
 from db import execute
 from i18n import t
+
+
+def build_student_filters(term, location_id, consent_value, status_value):
+    term = (term or "").strip()
+    params = []
+    where_clauses = []
+    if term:
+        where_clauses.append("s.name ILIKE %s")
+        params.append(f"%{term}%")
+
+    if consent_value is not None:
+        where_clauses.append("s.newsletter_opt_in = %s")
+        params.append(consent_value)
+
+    if status_value is not None:
+        where_clauses.append("s.active = %s")
+        params.append(status_value)
+
+    location_filter = ""
+    if location_id == "NONE":
+        location_filter = " AND s.location_id IS NULL"
+    elif location_id:
+        location_filter = " AND s.location_id = %s"
+        params.append(location_id)
+
+    if where_clauses:
+        base_where = " WHERE " + " AND ".join(where_clauses)
+    else:
+        base_where = " WHERE 1=1"
+
+    return base_where + location_filter, params
 
 
 def build(tab_reports):
@@ -17,7 +50,7 @@ def build(tab_reports):
     tab_reports.grid_columnconfigure(0, weight=1)
 
     report_frame.columnconfigure(0, weight=1)
-    report_frame.rowconfigure(2, weight=1)
+    report_frame.rowconfigure(3, weight=1)
 
     search_var = tk.StringVar()
     all_locations_label = t("label.all_locations")
@@ -26,6 +59,7 @@ def build(tab_reports):
     location_map = {all_locations_label: None, no_location_label: "NONE"}
     current_page = {"value": 0}
     total_rows = {"value": 0}
+    last_filter_data = {"value": None}
     PAGE_SIZE = 50
 
     ttk.Label(report_frame, text=t("label.name")).grid(row=0, column=0, sticky="w")
@@ -42,30 +76,231 @@ def build(tab_reports):
     )
     location_cb.grid(row=1, column=1, sticky="ew", padx=(8, 0))
 
+    filters_frame = ttk.LabelFrame(report_frame, text=t("label.filters"), padding=6)
+    filters_frame.grid(row=2, column=0, columnspan=3, sticky="ew", pady=(6, 0))
+
+    consent_var = tk.StringVar(value=t("label.all"))
+    status_var = tk.StringVar(value=t("label.all"))
+
+    consent_options = {
+        t("label.all"): None,
+        t("label.opt_in"): True,
+        t("label.opt_out"): False,
+    }
+    status_options = {
+        t("label.all"): None,
+        t("label.active"): True,
+        t("label.inactive"): False,
+    }
+
+    ttk.Label(filters_frame, text=t("label.consent")).grid(row=0, column=0, sticky="w")
+    consent_cb = ttk.Combobox(
+        filters_frame,
+        textvariable=consent_var,
+        state="readonly",
+        width=18,
+        values=list(consent_options.keys()),
+    )
+    consent_cb.grid(row=0, column=1, sticky="w", padx=(6, 16))
+
+    ttk.Label(filters_frame, text=t("label.status")).grid(row=0, column=2, sticky="w")
+    status_cb = ttk.Combobox(
+        filters_frame,
+        textvariable=status_var,
+        state="readonly",
+        width=14,
+        values=list(status_options.keys()),
+    )
+    status_cb.grid(row=0, column=3, sticky="w", padx=(6, 0))
+
+    filters_frame.columnconfigure(4, weight=1)
+
+    export_frame = ttk.LabelFrame(report_frame, text=t("label.export"), padding=6)
+    export_frame.grid(row=3, column=0, columnspan=3, sticky="ew", pady=(6, 0))
+
+    export_csv = tk.BooleanVar(value=True)
+    export_pdf = tk.BooleanVar(value=False)
+    export_xlsx = tk.BooleanVar(value=False)
+
+    ttk.Checkbutton(export_frame, text=t("label.export_csv"), variable=export_csv).grid(
+        row=0, column=0, sticky="w"
+    )
+    ttk.Checkbutton(export_frame, text=t("label.export_pdf"), variable=export_pdf).grid(
+        row=0, column=1, sticky="w", padx=(12, 0)
+    )
+    ttk.Checkbutton(export_frame, text=t("label.export_xlsx"), variable=export_xlsx).grid(
+        row=0, column=2, sticky="w", padx=(12, 0)
+    )
+
+    export_btn = ttk.Button(export_frame, text=t("button.export"), state="disabled")
+    export_btn.grid(row=0, column=3, sticky="e", padx=(16, 0))
+    export_frame.columnconfigure(4, weight=1)
+
     results_btn = ttk.Button(report_frame, text=t("label.results", count=0), state="disabled")
-    results_btn.grid(row=3, column=0, sticky="w", pady=(6, 0))
+    results_btn.grid(row=5, column=0, sticky="w", pady=(6, 0))
 
     last_query_lbl = ttk.Label(report_frame, text=t("label.last_query", time="--"))
-    last_query_lbl.grid(row=3, column=1, columnspan=2, sticky="e", pady=(6, 0))
+    last_query_lbl.grid(row=5, column=1, columnspan=2, sticky="e", pady=(6, 0))
 
     def _build_filters():
         term = search_var.get().strip()
-        if not term:
-            messagebox.showinfo("Search", "Enter a name to search.")
-            return None, None
 
         location_key = location_var.get()
         location_id = location_map.get(location_key)
-        params = [f"%{term}%"]
+        consent_value = consent_options.get(consent_var.get())
+        status_value = status_options.get(status_var.get())
 
-        location_filter = ""
-        if location_id == "NONE":
-            location_filter = " AND s.location_id IS NULL"
-        elif location_id:
-            location_filter = " AND s.location_id = %s"
-            params.append(location_id)
+        where_sql, params = build_student_filters(
+            term,
+            location_id,
+            consent_value,
+            status_value,
+        )
 
-        return term, (location_filter, params)
+        return term, (where_sql, params)
+
+    def _export_query_rows(where_sql, params):
+        return execute(f"""
+            SELECT 'Student' AS type, s.name, s.email, s.phone, l.name AS location, s.newsletter_opt_in, s.active
+            FROM t_students s
+            LEFT JOIN t_locations l ON s.location_id = l.id
+            {where_sql}
+            ORDER BY s.name
+        """, tuple(params))
+
+    def _project_root():
+        return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    def _export_csv(rows):
+        filename = f"reports_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        path = os.path.join(_project_root(), filename)
+        with open(path, "w", newline="", encoding="utf-8") as handle:
+            writer = csv.writer(handle)
+            writer.writerow([
+                t("label.type"),
+                t("label.name"),
+                t("label.email"),
+                t("label.phone"),
+                t("label.location"),
+                t("label.newsletter"),
+                t("label.status"),
+            ])
+            for r in rows:
+                writer.writerow([
+                    r[0],
+                    r[1],
+                    r[2],
+                    r[3],
+                    r[4],
+                    t("label.yes") if r[5] else t("label.no"),
+                    t("label.active") if r[6] else t("label.inactive"),
+                ])
+        return path
+
+    def _export_pdf(rows):
+        try:
+            from reportlab.lib.pagesizes import letter
+            from reportlab.pdfgen import canvas
+        except Exception:
+            messagebox.showerror(t("label.export"), t("label.export_pdf_missing"))
+            return None
+        filename = f"reports_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        path = os.path.join(_project_root(), filename)
+        c = canvas.Canvas(path, pagesize=letter)
+        width, height = letter
+        y = height - 40
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(40, y, t("label.export_title"))
+        y -= 24
+        c.setFont("Helvetica", 9)
+        headers = [
+            t("label.type"),
+            t("label.name"),
+            t("label.email"),
+            t("label.phone"),
+            t("label.location"),
+            t("label.newsletter"),
+            t("label.status"),
+        ]
+        c.drawString(40, y, " | ".join(headers))
+        y -= 14
+        for r in rows:
+            line = " | ".join([
+                str(r[0]),
+                str(r[1]),
+                str(r[2]),
+                str(r[3]),
+                str(r[4]),
+                t("label.yes") if r[5] else t("label.no"),
+                t("label.active") if r[6] else t("label.inactive"),
+            ])
+            if y < 50:
+                c.showPage()
+                y = height - 40
+                c.setFont("Helvetica", 9)
+            c.drawString(40, y, line[:180])
+            y -= 12
+        c.save()
+        return path
+
+    def _export_xlsx(rows):
+        try:
+            from openpyxl import Workbook
+        except Exception:
+            messagebox.showerror(t("label.export"), t("label.export_xlsx_missing"))
+            return None
+        filename = f"reports_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        path = os.path.join(_project_root(), filename)
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Reports"
+        ws.append([
+            t("label.type"),
+            t("label.name"),
+            t("label.email"),
+            t("label.phone"),
+            t("label.location"),
+            t("label.newsletter"),
+            t("label.status"),
+        ])
+        for r in rows:
+            ws.append([
+                r[0],
+                r[1],
+                r[2],
+                r[3],
+                r[4],
+                t("label.yes") if r[5] else t("label.no"),
+                t("label.active") if r[6] else t("label.inactive"),
+            ])
+        wb.save(path)
+        return path
+
+    def export_results():
+        if last_filter_data["value"] is None:
+            return
+        where_sql, params = last_filter_data["value"]
+        rows = _export_query_rows(where_sql, params)
+        if not rows:
+            messagebox.showinfo(t("label.export"), t("label.no_data"))
+            return
+        saved = []
+        if export_csv.get():
+            path = _export_csv(rows)
+            if path:
+                saved.append(path)
+        if export_pdf.get():
+            path = _export_pdf(rows)
+            if path:
+                saved.append(path)
+        if export_xlsx.get():
+            path = _export_xlsx(rows)
+            if path:
+                saved.append(path)
+        if saved:
+            messagebox.showinfo(t("label.export"), t("label.export_done", files="\n".join(saved)))
+
+    export_btn.config(command=export_results)
 
     def _update_pager():
         total = total_rows["value"]
@@ -78,15 +313,21 @@ def build(tab_reports):
         term, filter_data = _build_filters()
         if filter_data is None:
             return
+        if not term:
+            results_tree.delete(*results_tree.get_children())
+            results_btn.config(text=t("label.results", count=0))
+            last_query_lbl.config(text=t("label.last_query", time="--"))
         location_filter, params = filter_data
+        last_filter_data["value"] = (location_filter, params)
         current_page["value"] = 0
 
         count = execute(f"""
             SELECT COUNT(*)
             FROM t_students s
-            WHERE s.name ILIKE %s{location_filter}
+            {location_filter}
         """, tuple(params))
         total_rows["value"] = count[0][0] if count else 0
+        export_btn.config(state="normal" if total_rows["value"] > 0 else "disabled")
         _load_page()
 
     def _load_page():
@@ -97,32 +338,40 @@ def build(tab_reports):
         offset = current_page["value"] * PAGE_SIZE
 
         rows = execute(f"""
-            SELECT 'Student' AS type, s.name, s.email, s.phone, l.name AS location
+            SELECT 'Student' AS type, s.name, s.email, s.phone, l.name AS location, s.newsletter_opt_in, s.active
             FROM t_students s
             LEFT JOIN t_locations l ON s.location_id = l.id
-            WHERE s.name ILIKE %s{location_filter}
+            {location_filter}
             ORDER BY s.name
             LIMIT %s OFFSET %s
         """, tuple(params + [PAGE_SIZE, offset]))
 
         results_tree.delete(*results_tree.get_children())
         if not rows:
-            results_tree.insert("", tk.END, values=(t("label.no_data"), "", "", "", ""))
+            results_tree.insert("", tk.END, values=(t("label.no_data"), "", "", "", "", "", ""))
             results_btn.config(text=t("label.results", count=0))
             last_query_lbl.config(text=t("label.last_query", time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+            export_btn.config(state="disabled")
             _update_pager()
             return
         for r in rows:
-            results_tree.insert("", tk.END, values=r)
+            results_tree.insert(
+                "",
+                tk.END,
+                values=r[:5] + (t("label.yes") if r[5] else t("label.no"), t("label.active") if r[6] else t("label.inactive"))
+            )
         results_btn.config(text=t("label.results", count=total_rows["value"]))
         last_query_lbl.config(text=t("label.last_query", time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
         _update_pager()
 
     ttk.Button(report_frame, text=t("button.search"), command=run_search).grid(row=1, column=2, sticky="e", padx=(8, 0))
 
+    results_frame = ttk.Frame(report_frame)
+    results_frame.grid(row=4, column=0, columnspan=3, sticky="nsew", pady=10)
+
     results_tree = ttk.Treeview(
-        report_frame,
-        columns=("type", "name", "email", "phone", "location"),
+        results_frame,
+        columns=("type", "name", "email", "phone", "location", "newsletter", "status"),
         show="headings"
     )
     header_map = {
@@ -131,14 +380,20 @@ def build(tab_reports):
         "email": "label.email",
         "phone": "label.phone",
         "location": "label.location",
+        "newsletter": "label.newsletter",
+        "status": "label.status",
     }
     for c in results_tree["columns"]:
         results_tree.heading(c, text=t(header_map.get(c, c)))
 
-    results_tree.grid(row=2, column=0, columnspan=3, sticky="nsew", pady=10)
+    results_tree.pack(fill=tk.BOTH, expand=True)
+
+    results_scroll = ttk.Scrollbar(results_frame, orient="horizontal", command=results_tree.xview)
+    results_tree.configure(xscrollcommand=results_scroll.set)
+    results_scroll.pack(fill=tk.X)
 
     pager = ttk.Frame(report_frame)
-    pager.grid(row=4, column=0, columnspan=3, pady=(6, 0))
+    pager.grid(row=6, column=0, columnspan=3, pady=(6, 0))
 
     btn_prev = ttk.Button(pager, text=t("button.prev"), command=lambda: _change_page(-1))
     btn_next = ttk.Button(pager, text=t("button.next"), command=lambda: _change_page(1))

@@ -8,8 +8,12 @@ from validation_middleware import (
     validate_weight,
     validate_birthday,
 )
+from ui.reports import build_student_filters
+from ui.students import default_newsletter_opt_in
 
-# Basic happy-path and failure cases for validation helpers.
+# ---------------------------
+# Validation helper tests
+# ---------------------------
 def test_validate_required_ok():
     validate_required("John", "Name")
 
@@ -37,3 +41,38 @@ def test_validate_birthday_ok():
 def test_validate_birthday_future():
     with pytest.raises(ValidationError):
         validate_birthday(date.today() + timedelta(days=1))
+
+# ---------------------------
+# Newsletter defaults
+# ---------------------------
+
+def test_newsletter_default_opt_in():
+    assert default_newsletter_opt_in() is True
+
+# ---------------------------
+# Reports filter builder
+# ---------------------------
+
+def test_reports_filters_name_only():
+    where_sql, params = build_student_filters("Ana", None, None, None)
+    assert "s.name ILIKE %s" in where_sql
+    assert params == ["%Ana%"]
+
+
+def test_reports_filters_location_none():
+    where_sql, params = build_student_filters("", "NONE", None, None)
+    assert "s.location_id IS NULL" in where_sql
+    assert params == []
+
+
+def test_reports_filters_location_specific():
+    where_sql, params = build_student_filters("", 5, None, None)
+    assert "s.location_id = %s" in where_sql
+    assert params == [5]
+
+
+def test_reports_filters_consent_and_status():
+    where_sql, params = build_student_filters("", None, True, False)
+    assert "s.newsletter_opt_in = %s" in where_sql
+    assert "s.active = %s" in where_sql
+    assert params == [True, False]

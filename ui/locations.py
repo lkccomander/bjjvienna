@@ -115,6 +115,10 @@ def build(tab_locations):
     locations_tree.tag_configure("inactive", foreground="red")
     locations_tree.pack(fill=tk.BOTH, expand=True)
 
+    x_scroll = ttk.Scrollbar(locations_list, orient="horizontal", command=locations_tree.xview)
+    locations_tree.configure(xscrollcommand=x_scroll.set)
+    x_scroll.pack(fill=tk.X)
+
     # Load locations into the grid.
     def load_locations():
         locations_tree.delete(*locations_tree.get_children())

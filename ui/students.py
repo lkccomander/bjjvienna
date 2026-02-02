@@ -24,10 +24,19 @@ PAGE_SIZE_STUDENTS = 100
 matplotlib.use("TkAgg")
 
 
+def default_newsletter_opt_in():
+    return True
+
+
 def build(tab_students):
     #ttk.Label(tab_students, text="STUDENTS TAB OK", foreground="green").grid(
      #   row=0, column=0, columnspan=3, sticky="w", padx=10, pady=10
     #)
+
+    execute("""
+        ALTER TABLE t_students
+        ADD COLUMN IF NOT EXISTS newsletter_opt_in boolean NOT NULL DEFAULT true
+    """)
 
     current_student_page = 0
     selected_student_id = None
@@ -68,7 +77,7 @@ def build(tab_students):
 
         return execute(f"""
             SELECT s.id, s.name, s.sex, s.direction, s.postalcode, s.belt, s.email, s.phone, s.phone2,
-                   s.weight, s.country, s.taxid, l.name AS location, s.birthday, s.active
+                   s.weight, s.country, s.taxid, l.name AS location, s.birthday, s.active, s.newsletter_opt_in
             FROM t_students s
             LEFT JOIN t_locations l ON s.location_id = l.id
             {where}
@@ -141,6 +150,7 @@ def build(tab_students):
     st_taxid = tk.StringVar()
     st_birthday = tk.StringVar()
     st_location = tk.StringVar()
+    st_newsletter = tk.BooleanVar(value=default_newsletter_opt_in())
 
     location_option_map = {}
 
@@ -224,6 +234,12 @@ def build(tab_students):
     ttk.Label(form, text=t("label.birthday")).grid(row=len(fields), column=0, sticky="w")
     st_birthday = DateEntry(form, date_pattern="yyyy-mm-dd", width=27)
     st_birthday.grid(row=len(fields), column=1)
+
+    ttk.Checkbutton(
+        form,
+        text=t("label.newsletter_opt_in"),
+        variable=st_newsletter
+    ).grid(row=len(fields) + 1, column=0, columnspan=2, sticky="w", pady=(4, 0))
 
     # Refresh the location combobox on click to pick up new locations.
     def on_location_click(event):
@@ -311,8 +327,8 @@ def build(tab_students):
 
             execute("""
                 INSERT INTO t_students
-                (name,sex,direction,postalcode,belt,email,phone,phone2,weight,country,taxid,birthday,location_id)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                (name,sex,direction,postalcode,belt,email,phone,phone2,weight,country,taxid,birthday,location_id,newsletter_opt_in)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """, (
                 st_name.get(),
                 st_sex.get(),
@@ -326,7 +342,8 @@ def build(tab_students):
                 st_country.get(),
                 st_taxid.get(),
                 st_birthday.get_date(),
-                location_option_map.get(st_location.get())
+                location_option_map.get(st_location.get()),
+                st_newsletter.get()
             ))
 
             load_students_view()
@@ -356,7 +373,7 @@ def build(tab_students):
             execute("""
                 UPDATE t_students
                 SET name=%s,sex=%s,direction=%s,postalcode=%s,belt=%s,email=%s,phone=%s,phone2=%s,
-                    weight=%s,country=%s,taxid=%s,location_id=%s,
+                    weight=%s,country=%s,taxid=%s,location_id=%s,newsletter_opt_in=%s,
                     birthday=%s,updated_at=now()
                 WHERE id=%s
             """, (
@@ -372,6 +389,7 @@ def build(tab_students):
                 st_country.get(),
                 st_taxid.get(),
                 location_option_map.get(st_location.get()),
+                st_newsletter.get(),
                 st_birthday.get_date(),
                 selected_student_id
             ))
@@ -430,6 +448,7 @@ def build(tab_students):
         st_country.set("Austria")
         st_taxid.set("")
         st_location.set("")
+        st_newsletter.set(default_newsletter_opt_in())
         st_birthday.set_date(date.today())
 
         update_button_states()
@@ -438,7 +457,7 @@ def build(tab_students):
     # BUTTONS
     # =====================================================
     btns = ttk.Frame(form)
-    btns.grid(row=len(fields)+1, column=0, columnspan=2, pady=10)
+    btns.grid(row=len(fields)+2, column=0, columnspan=2, pady=10)
 
     btn_register = ttk.Button(btns, text=t("button.register"), command=register_student)
     btn_update = ttk.Button(btns, text=t("button.update"), command=update_student)
@@ -460,7 +479,7 @@ def build(tab_students):
     # =====================================================
     students_tree = ttk.Treeview(
         tree_frame,
-        columns=("id", "name", "sex", "direction", "postalcode", "belt", "email", "phone", "phone2", "weight", "country", "taxid", "location", "birthday", "status"),
+        columns=("id", "name", "sex", "direction", "postalcode", "belt", "email", "phone", "phone2", "weight", "country", "taxid", "location", "birthday", "status", "newsletter"),
         show="headings"
     )
     header_map = {
@@ -479,6 +498,7 @@ def build(tab_students):
         "location": "label.location",
         "birthday": "label.birthday",
         "status": "label.status",
+        "newsletter": "label.newsletter",
     }
     for c in students_tree["columns"]:
         students_tree.heading(c, text=t(header_map.get(c, c)))
@@ -487,6 +507,10 @@ def build(tab_students):
     students_tree.tag_configure("inactive", foreground="red")
 
     students_tree.pack(fill=tk.BOTH, expand=True)
+
+    x_scroll = ttk.Scrollbar(tree_frame, orient="horizontal", command=students_tree.xview)
+    students_tree.configure(xscrollcommand=x_scroll.set)
+    x_scroll.pack(fill=tk.X)
 
     # Enable or disable student action buttons based on selection state.
     def update_button_states():
@@ -532,6 +556,7 @@ def build(tab_students):
         st_location.set(location_label)
         if v[13]:
             st_birthday.set_date(v[13])
+        st_newsletter.set(v[15] if len(v) > 15 else True)
 
         update_button_states()
 
@@ -555,7 +580,7 @@ def build(tab_students):
         if not rows:
             students_tree.insert(
                 "", tk.END,
-                values=("", t("label.no_data"), "", "", "", "", "", "", "", "", "", "", "", "", ""),
+                values=("", t("label.no_data"), "", "", "", "", "", "", "", "", "", "", "", "", "", ""),
                 tags=("inactive",)
             )
             lbl_page.config(text=t("label.page", page=1, pages=1))
@@ -567,7 +592,7 @@ def build(tab_students):
             tag = "active" if active else "inactive"
             students_tree.insert(
                 "", tk.END,
-                values=row[:14] + (status,),
+                values=row[:14] + (status, t("label.yes") if row[15] else t("label.no")),
                 tags=(tag,)
             )
 

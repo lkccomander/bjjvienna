@@ -1,10 +1,11 @@
+import json
 import os
 import platform
 import re
 import socket
 import subprocess
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox, filedialog
 
 from version import __version__
 from i18n import t
@@ -14,10 +15,68 @@ def build(tab_about):
    # ttk.Label(tab_about, text="STUDENTS TAB OK", foreground="green").grid(
     #    row=0, column=0, columnspan=3, sticky="w", padx=10, pady=10
     #)
-    about_frame = ttk.LabelFrame(tab_about, text=t("label.system_config"), padding=10)
-    about_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
-    tab_about.grid_rowconfigure(1, weight=1)
+    tab_about.grid_rowconfigure(2, weight=1)
     tab_about.grid_columnconfigure(0, weight=1)
+
+    logo_frame = ttk.LabelFrame(tab_about, text=t("label.logo"), padding=10)
+    logo_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=(10, 0))
+
+    logo_label = ttk.Label(logo_frame)
+    logo_label.grid(row=0, column=0, sticky="w")
+
+    def _settings_path():
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        return os.path.join(base_dir, "app_settings.json")
+
+    def _load_settings():
+        try:
+            with open(_settings_path(), "r", encoding="utf-8") as handle:
+                return json.load(handle)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return {}
+
+    def _save_settings(data):
+        with open(_settings_path(), "w", encoding="utf-8") as handle:
+            json.dump(data, handle, indent=2, sort_keys=True)
+
+    def _load_logo(path):
+        try:
+            from PIL import Image, ImageTk
+        except Exception:
+            messagebox.showerror(t("label.logo"), t("label.logo_pillow_missing"))
+            return
+
+        if not path or not os.path.exists(path):
+            return
+
+        img = Image.open(path)
+        img.thumbnail((320, 140))
+        photo = ImageTk.PhotoImage(img)
+        logo_label.configure(image=photo)
+        logo_label.image = photo
+
+    def choose_logo():
+        path = filedialog.askopenfilename(
+            title=t("label.choose_logo"),
+            filetypes=[(t("label.jpg_files"), "*.jpg;*.jpeg")],
+        )
+        if not path:
+            return
+        settings = _load_settings()
+        settings["logo_path"] = path
+        _save_settings(settings)
+        _load_logo(path)
+
+    ttk.Button(logo_frame, text=t("button.choose_logo"), command=choose_logo).grid(
+        row=0, column=1, sticky="e", padx=(12, 0)
+    )
+    logo_frame.columnconfigure(0, weight=1)
+
+    settings = _load_settings()
+    _load_logo(settings.get("logo_path"))
+
+    about_frame = ttk.LabelFrame(tab_about, text=t("label.system_config"), padding=10)
+    about_frame.grid(row=2, column=0, sticky="nsew", padx=10, pady=10)
 
     unknown_text = t("label.unknown")
 
