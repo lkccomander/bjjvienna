@@ -16,7 +16,10 @@ def main():
             logging.FileHandler("app.log"),
             logging.StreamHandler(),
         ],
+        force=True,
     )
+    logging.error("TEST ERROR: console logging works")
+    
 
     try:
         init_i18n()
