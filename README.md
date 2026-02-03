@@ -7,3 +7,12 @@
    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=lkccomander/bjjvienna.git&type=date&legend=top-left" />
  </picture>
 </a>
+
+
+Release Notes — v1.0.4
+
+Added reports export options and newsletter filters.
+Added de-AT translations and localized UI labels.
+Improved logging and error handling.
+CI/build improvements and icon/spec updates.
+README update (Star History) and .gitignore adjustments.
