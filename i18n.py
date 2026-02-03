@@ -3,15 +3,20 @@ import os
 import sys
 
 
-def _resolve_base_dir():
+def _resolve_i18n_dir():
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
-        return sys._MEIPASS
-    return os.path.dirname(os.path.abspath(__file__))
+        return os.path.join(sys._MEIPASS, "i18n")
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "i18n")
 
 
-_BASE_DIR = _resolve_base_dir()
-_I18N_DIR = os.path.join(_BASE_DIR, "i18n")
-_SETTINGS_PATH = os.path.join(_BASE_DIR, "app_settings.json")
+def _resolve_settings_path():
+    if getattr(sys, "frozen", False):
+        return os.path.join(os.path.dirname(sys.executable), "app_settings.json")
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "app_settings.json")
+
+
+_I18N_DIR = _resolve_i18n_dir()
+_SETTINGS_PATH = _resolve_settings_path()
 _DEFAULT_LANG = "en"
 
 _language = _DEFAULT_LANG
