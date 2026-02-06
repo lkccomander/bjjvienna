@@ -44,7 +44,8 @@
 - Export supports CSV/PDF/Excel to the project root. PDF uses `reportlab`; Excel uses `openpyxl`.
 
 ## Configuration
-- Database credentials are provided via environment variables in `.env*` files.
+- DB connection settings (host/port/name/sslmode) live in `app_settings.json` and can be overridden by `.env*`.
+- DB credentials are loaded from environment variables when present, otherwise from Windows Credential Manager via `keyring`.
 - Environment selection is controlled by `APP_ENV`.
 - User preferences (language and logo path) are saved to `app_settings.json`.
 

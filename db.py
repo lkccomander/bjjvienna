@@ -1,6 +1,13 @@
+import json
 import os
+import sys
+
+import keyring
 import psycopg2
+import tkinter as tk
+from tkinter import messagebox, simpledialog
 from dotenv import load_dotenv
+from psycopg2 import OperationalError
 
 _env = os.getenv("APP_ENV", "default").lower()
 _base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -38,16 +45,242 @@ else:
 if _loaded_env_path:
     print(f"DB config loaded from: {_loaded_env_path}")
 
-_conn = psycopg2.connect(
-    host=os.getenv("DB_HOST"),
-    port=os.getenv("DB_PORT"),
-    dbname=os.getenv("DB_NAME"),
-    user=os.getenv("DB_USER"),
-    password=os.getenv("DB_PASSWORD")
-)
+def _resolve_settings_path():
+    if getattr(sys, "frozen", False):
+        # Prefer a user-editable settings file next to the exe.
+        return os.path.join(os.path.dirname(sys.executable), "app_settings.json")
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "app_settings.json")
 
+
+def _resolve_bundled_settings_path():
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        return os.path.join(sys._MEIPASS, "app_settings.json")
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "app_settings.json")
+
+
+_APP_SETTINGS_PATH = _resolve_settings_path()
+_BUNDLED_SETTINGS_PATH = _resolve_bundled_settings_path()
+_KEYRING_SERVICE = "bjjvienna_postgres"
+_KEYRING_USER_KEY = "__db_user__"
+
+
+def _load_app_settings():
+    # First try the editable settings file next to the exe (or project root).
+    if os.path.exists(_APP_SETTINGS_PATH):
+        try:
+            with open(_APP_SETTINGS_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return data if isinstance(data, dict) else {}
+        except Exception:
+            return {}
+    # If missing in frozen mode, fall back to the bundled default.
+    if os.path.exists(_BUNDLED_SETTINGS_PATH):
+        try:
+            with open(_BUNDLED_SETTINGS_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                data = data if isinstance(data, dict) else {}
+            # Try to persist a user-editable copy next to the exe.
+            try:
+                with open(_APP_SETTINGS_PATH, "w", encoding="utf-8") as out:
+                    json.dump(data, out, indent=2, ensure_ascii=False)
+            except Exception:
+                pass
+            return data
+        except Exception:
+            return {}
+    return {}
+
+
+def _load_db_settings():
+    settings = _load_app_settings()
+    db_settings = settings.get("db")
+    return db_settings if isinstance(db_settings, dict) else {}
+
+
+def _save_app_settings(settings):
+    try:
+        with open(_APP_SETTINGS_PATH, "w", encoding="utf-8") as handle:
+            json.dump(settings, handle, indent=2, ensure_ascii=False)
+    except Exception:
+        pass
+
+
+def _get_keyring_user():
+    return keyring.get_password(_KEYRING_SERVICE, _KEYRING_USER_KEY)
+
+
+def _get_keyring_password(user):
+    if not user:
+        return None
+    return keyring.get_password(_KEYRING_SERVICE, user)
+
+
+def _save_keyring_credentials(user, password):
+    keyring.set_password(_KEYRING_SERVICE, _KEYRING_USER_KEY, user)
+    keyring.set_password(_KEYRING_SERVICE, user, password)
+
+
+def _prompt_for_credentials(default_user=None):
+    root = tk.Tk()
+    root.withdraw()
+    root.attributes("-topmost", True)
+
+    user = default_user
+    if not user:
+        user = simpledialog.askstring(
+            "Database Login",
+            "Database username:",
+            parent=root,
+        )
+
+    password_prompt = "Database password:" if not user else f"Password for {user}:"
+    password = simpledialog.askstring(
+        "Database Login",
+        password_prompt,
+        show="*",
+        parent=root,
+    )
+
+    if not user or not password:
+        messagebox.showerror("Database Login", "Database credentials are required.")
+        root.destroy()
+        raise RuntimeError("Database credentials are required.")
+
+    root.destroy()
+    return user, password
+
+
+def _prompt_for_db_settings(current):
+    root = tk.Tk()
+    root.withdraw()
+    root.attributes("-topmost", True)
+
+    host = simpledialog.askstring(
+        "Database Settings",
+        "Database host:",
+        initialvalue=current.get("host", ""),
+        parent=root,
+    )
+    port = simpledialog.askstring(
+        "Database Settings",
+        "Database port:",
+        initialvalue=str(current.get("port", 5432)),
+        parent=root,
+    )
+    name = simpledialog.askstring(
+        "Database Settings",
+        "Database name:",
+        initialvalue=current.get("name", ""),
+        parent=root,
+    )
+    sslmode = simpledialog.askstring(
+        "Database Settings",
+        "SSL mode (disable/allow/prefer/require/verify-ca/verify-full):",
+        initialvalue=current.get("sslmode", "prefer"),
+        parent=root,
+    )
+
+    root.destroy()
+
+    if not host or not port or not name:
+        raise RuntimeError("Database host, port, and name are required.")
+
+    try:
+        port_int = int(port)
+    except ValueError:
+        raise RuntimeError("Database port must be a number.")
+
+    return {
+        "host": host.strip(),
+        "port": port_int,
+        "name": name.strip(),
+        "sslmode": (sslmode or "prefer").strip(),
+    }
+
+
+def _require(value, name, hint):
+    if value is None or value == "":
+        raise RuntimeError(f"Missing database {name}. {hint}")
+    return value
+
+
+_db_settings = _load_db_settings()
+
+_host = os.getenv("DB_HOST") or _db_settings.get("host")
+_port = os.getenv("DB_PORT") or _db_settings.get("port")
+_dbname = os.getenv("DB_NAME") or _db_settings.get("name")
+_sslmode = os.getenv("DB_SSLMODE") or _db_settings.get("sslmode")
+
+_host = _require(_host, "host", "Set DB_HOST or app_settings.json db.host")
+_dbname = _require(_dbname, "name", "Set DB_NAME or app_settings.json db.name")
+_port = _require(_port, "port", "Set DB_PORT or app_settings.json db.port")
+
+_env_user = os.getenv("DB_USER")
+_env_password = os.getenv("DB_PASSWORD")
+
+_user = _env_user or _get_keyring_user()
+_password = _env_password or _get_keyring_password(_env_user or _user)
+
+if not _user or not _password:
+    _user, _password = _prompt_for_credentials(default_user=_user)
+    _save_keyring_credentials(_user, _password)
+
+def _connect(host, port, dbname, user, password, sslmode):
+    return psycopg2.connect(
+        host=host,
+        port=port,
+        dbname=dbname,
+        user=user,
+        password=password,
+        sslmode=sslmode,
+    )
+
+
+try:
+    _conn = _connect(_host, _port, _dbname, _user, _password, _sslmode)
+except OperationalError as exc:
+    root = tk.Tk()
+    root.withdraw()
+    root.attributes("-topmost", True)
+    should_edit = messagebox.askyesno(
+        "Database Connection Failed",
+        "Database connection failed.\n\nDo you want to edit the DB settings?",
+        parent=root,
+    )
+    root.destroy()
+    if should_edit:
+        new_db_settings = _prompt_for_db_settings(_db_settings or {})
+        settings = _load_app_settings()
+        settings["db"] = new_db_settings
+        _save_app_settings(settings)
+        _db_settings = new_db_settings
+        _host = _db_settings.get("host")
+        _port = _db_settings.get("port")
+        _dbname = _db_settings.get("name")
+        _sslmode = _db_settings.get("sslmode")
+        try:
+            _conn = _connect(_host, _port, _dbname, _user, _password, _sslmode)
+        except OperationalError as exc2:
+            messagebox.showerror(
+                "Database Connection Failed",
+                "Unable to connect to the database.\n\n"
+                f"{exc2}\n\n"
+                "Tip: If you see 'no pg_hba.conf entry ... no encryption', "
+                "set sslmode to 'require' or update pg_hba.conf.",
+            )
+            sys.exit(1)
+    else:
+        messagebox.showerror(
+            "Database Connection Failed",
+            "Unable to connect to the database.\n\n"
+            f"{exc}\n\n"
+            "Tip: If you see 'no pg_hba.conf entry ... no encryption', "
+            "set sslmode to 'require' or update pg_hba.conf.",
+        )
+        sys.exit(1)
 
 _conn.autocommit = True
+
 
 def execute(query, params=None):
     with _conn.cursor() as cur:

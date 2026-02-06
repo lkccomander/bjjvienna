@@ -5,8 +5,16 @@ a = Analysis(
     ['gui.py'],
     pathex=[],
     binaries=[],
-    datas=[],
-    hiddenimports=[],
+    datas=[
+        ('i18n\\*.json', 'i18n'),
+        ('app_settings.json', '.'),
+    ],
+    hiddenimports=[
+        'keyring',
+        'keyring.backends',
+        'keyring.backends.Windows',
+        'win32cred',
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
