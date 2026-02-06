@@ -33,7 +33,7 @@ jobs:
 
       - name: Build EXE (PyInstaller)
         run: |
-          pyinstaller --onefile --windowed gui.py
+          pyinstaller --clean --noconfirm --onefile --windowed --name gui --add-data "i18n;i18n" gui.py
 
       - name: Upload EXE artifact
         uses: actions/upload-artifact@v4
