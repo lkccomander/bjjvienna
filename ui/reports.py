@@ -8,7 +8,7 @@ from db import execute
 from i18n import t
 
 
-def build_student_filters(term, location_id, consent_value, status_value):
+def build_student_filters(term, location_id, consent_value, status_value, is_minor_only):
     term = (term or "").strip()
     params = []
     where_clauses = []
@@ -23,6 +23,9 @@ def build_student_filters(term, location_id, consent_value, status_value):
     if status_value is not None:
         where_clauses.append("s.active = %s")
         params.append(status_value)
+
+    if is_minor_only:
+        where_clauses.append("s.is_minor = TRUE")
 
     location_filter = ""
     if location_id == "NONE":
@@ -81,6 +84,7 @@ def build(tab_reports):
 
     consent_var = tk.StringVar(value=t("label.all"))
     status_var = tk.StringVar(value=t("label.all"))
+    is_minor_only_var = tk.BooleanVar(value=False)
 
     consent_options = {
         t("label.all"): None,
@@ -113,7 +117,13 @@ def build(tab_reports):
     )
     status_cb.grid(row=0, column=3, sticky="w", padx=(6, 0))
 
-    filters_frame.columnconfigure(4, weight=1)
+    ttk.Checkbutton(
+        filters_frame,
+        text=t("label.is_minor"),
+        variable=is_minor_only_var,
+    ).grid(row=0, column=4, sticky="w", padx=(16, 0))
+
+    filters_frame.columnconfigure(5, weight=1)
 
     export_frame = ttk.LabelFrame(report_frame, text=t("label.export"), padding=6)
     export_frame.grid(row=3, column=0, columnspan=3, sticky="ew", pady=(6, 0))
@@ -155,13 +165,24 @@ def build(tab_reports):
             location_id,
             consent_value,
             status_value,
+            is_minor_only_var.get(),
         )
 
         return term, (where_sql, params)
 
     def _export_query_rows(where_sql, params):
         return execute(f"""
-            SELECT 'Student' AS type, s.name, s.email, s.phone, l.name AS location, s.newsletter_opt_in, s.active
+            SELECT 'Student' AS type,
+                   s.name AS student_name,
+                   CASE
+                       WHEN s.is_minor THEN COALESCE(NULLIF(s.guardian_name, ''), s.name)
+                       ELSE s.name
+                   END AS contact_name,
+                   CASE WHEN s.is_minor THEN s.guardian_email ELSE s.email END AS contact_email,
+                   CASE WHEN s.is_minor THEN s.guardian_phone ELSE s.phone END AS contact_phone,
+                   l.name AS location,
+                   s.newsletter_opt_in,
+                   s.active
             FROM t_students s
             LEFT JOIN t_locations l ON s.location_id = l.id
             {where_sql}
@@ -179,8 +200,9 @@ def build(tab_reports):
             writer.writerow([
                 t("label.type"),
                 t("label.name"),
-                t("label.email"),
-                t("label.phone"),
+                t("label.contact_name"),
+                t("label.contact_email"),
+                t("label.contact_phone"),
                 t("label.location"),
                 t("label.newsletter"),
                 t("label.status"),
@@ -192,8 +214,9 @@ def build(tab_reports):
                     r[2],
                     r[3],
                     r[4],
-                    t("label.yes") if r[5] else t("label.no"),
-                    t("label.active") if r[6] else t("label.inactive"),
+                    r[5],
+                    t("label.yes") if r[6] else t("label.no"),
+                    t("label.active") if r[7] else t("label.inactive"),
                 ])
         return path
 
@@ -216,8 +239,9 @@ def build(tab_reports):
         headers = [
             t("label.type"),
             t("label.name"),
-            t("label.email"),
-            t("label.phone"),
+            t("label.contact_name"),
+            t("label.contact_email"),
+            t("label.contact_phone"),
             t("label.location"),
             t("label.newsletter"),
             t("label.status"),
@@ -231,8 +255,9 @@ def build(tab_reports):
                 str(r[2]),
                 str(r[3]),
                 str(r[4]),
-                t("label.yes") if r[5] else t("label.no"),
-                t("label.active") if r[6] else t("label.inactive"),
+                str(r[5]),
+                t("label.yes") if r[6] else t("label.no"),
+                t("label.active") if r[7] else t("label.inactive"),
             ])
             if y < 50:
                 c.showPage()
@@ -257,8 +282,9 @@ def build(tab_reports):
         ws.append([
             t("label.type"),
             t("label.name"),
-            t("label.email"),
-            t("label.phone"),
+            t("label.contact_name"),
+            t("label.contact_email"),
+            t("label.contact_phone"),
             t("label.location"),
             t("label.newsletter"),
             t("label.status"),
@@ -270,8 +296,9 @@ def build(tab_reports):
                 r[2],
                 r[3],
                 r[4],
-                t("label.yes") if r[5] else t("label.no"),
-                t("label.active") if r[6] else t("label.inactive"),
+                r[5],
+                t("label.yes") if r[6] else t("label.no"),
+                t("label.active") if r[7] else t("label.inactive"),
             ])
         wb.save(path)
         return path
@@ -338,7 +365,17 @@ def build(tab_reports):
         offset = current_page["value"] * PAGE_SIZE
 
         rows = execute(f"""
-            SELECT 'Student' AS type, s.name, s.email, s.phone, l.name AS location, s.newsletter_opt_in, s.active
+            SELECT 'Student' AS type,
+                   s.name AS student_name,
+                   CASE
+                       WHEN s.is_minor THEN COALESCE(NULLIF(s.guardian_name, ''), s.name)
+                       ELSE s.name
+                   END AS contact_name,
+                   CASE WHEN s.is_minor THEN s.guardian_email ELSE s.email END AS contact_email,
+                   CASE WHEN s.is_minor THEN s.guardian_phone ELSE s.phone END AS contact_phone,
+                   l.name AS location,
+                   s.newsletter_opt_in,
+                   s.active
             FROM t_students s
             LEFT JOIN t_locations l ON s.location_id = l.id
             {location_filter}
@@ -348,7 +385,7 @@ def build(tab_reports):
 
         results_tree.delete(*results_tree.get_children())
         if not rows:
-            results_tree.insert("", tk.END, values=(t("label.no_data"), "", "", "", "", "", ""))
+            results_tree.insert("", tk.END, values=(t("label.no_data"), "", "", "", "", "", "", ""))
             results_btn.config(text=t("label.results", count=0))
             last_query_lbl.config(text=t("label.last_query", time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
             export_btn.config(state="disabled")
@@ -358,7 +395,7 @@ def build(tab_reports):
             results_tree.insert(
                 "",
                 tk.END,
-                values=r[:5] + (t("label.yes") if r[5] else t("label.no"), t("label.active") if r[6] else t("label.inactive"))
+                values=r[:6] + (t("label.yes") if r[6] else t("label.no"), t("label.active") if r[7] else t("label.inactive"))
             )
         results_btn.config(text=t("label.results", count=total_rows["value"]))
         last_query_lbl.config(text=t("label.last_query", time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
@@ -371,14 +408,15 @@ def build(tab_reports):
 
     results_tree = ttk.Treeview(
         results_frame,
-        columns=("type", "name", "email", "phone", "location", "newsletter", "status"),
+        columns=("type", "name", "contact_name", "contact_email", "contact_phone", "location", "newsletter", "status"),
         show="headings"
     )
     header_map = {
         "type": "label.type",
         "name": "label.name",
-        "email": "label.email",
-        "phone": "label.phone",
+        "contact_name": "label.contact_name",
+        "contact_email": "label.contact_email",
+        "contact_phone": "label.contact_phone",
         "location": "label.location",
         "newsletter": "label.newsletter",
         "status": "label.status",
