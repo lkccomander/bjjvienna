@@ -43,6 +43,43 @@ def test_validate_birthday_future():
     with pytest.raises(ValidationError):
         validate_birthday(date.today() + timedelta(days=1))
 
+
+def test_full_student_registration_valid():
+    student_data = {
+        "name": "Ana Silva",
+        "sex": "Female",
+        "direction": "Main Street 123",
+        "postalcode": "1010",
+        "belt": "White",
+        "email": "ana.silva@example.com",
+        "phone": "+4312345678",
+        "phone2": "",
+        "weight": "62.5",
+        "country": "Austria",
+        "taxid": "ATU12345678",
+        "birthday": date.today() - timedelta(days=365 * 25),
+        "is_minor": False,
+        "guardian_name": "",
+        "guardian_email": "",
+        "guardian_phone": "",
+    }
+
+    validate_required(student_data["name"], "Name")
+    validate_weight(student_data["weight"])
+    validate_birthday(student_data["birthday"])
+
+    if student_data["is_minor"]:
+        validate_required(student_data["guardian_name"], "Guardian Name")
+        if (
+            not student_data["guardian_email"].strip()
+            and not student_data["guardian_phone"].strip()
+        ):
+            raise ValidationError("Guardian email or phone is required")
+        validate_optional_email(student_data["guardian_email"])
+        validate_optional_email(student_data["email"])
+    else:
+        validate_email(student_data["email"])
+
 # ---------------------------
 # Newsletter defaults
 # ---------------------------

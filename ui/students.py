@@ -1,4 +1,4 @@
-import tkinter as tk
+﻿import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import date
 
@@ -35,6 +35,8 @@ def sex_to_db(value):
         return "M"
     if normalized in ("female", "f"):
         return "F"
+    if normalized in ("na", "n/a"):
+        return "NA"
     return None
 
 
@@ -44,6 +46,8 @@ def sex_from_db(value):
         return "Male"
     if normalized == "F":
         return "Female"
+    if normalized in ("NA", "N/A"):
+        return "NA"
     return ""
 
 
@@ -259,7 +263,7 @@ def build(tab_students):
         elif lbl == "Genre":
             ttk.Combobox(
                 form, textvariable=var,
-                values=["Male", "Female"],
+                values=["Male", "Female", "NA"],
                 state="readonly", width=25
             ).grid(row=i, column=1)
         elif lbl == "Location":
@@ -410,9 +414,8 @@ def build(tab_students):
             validate_required(st_name.get(), "Name")
             sex_db = sex_to_db(st_sex.get())
             if not sex_db:
-                raise ValidationError("Select Male or Female")
+                raise ValidationError("Select Male, Female, or NA")
             validate_weight(st_weight.get())
-            print(st_weight.get(st_weight.get()))
             validate_birthday(st_birthday.get_date())
             if st_is_minor.get():
                 validate_required(st_guardian_name.get(), "Guardian Name")
@@ -474,7 +477,7 @@ def build(tab_students):
             validate_required(st_name.get(), "Name")
             sex_db = sex_to_db(st_sex.get())
             if not sex_db:
-                raise ValidationError("Select Male or Female")
+                raise ValidationError("Select Male, Female, or NA")
             validate_weight(st_weight.get())
             if st_is_minor.get():
                 validate_required(st_guardian_name.get(), "Guardian Name")

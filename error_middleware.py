@@ -23,9 +23,14 @@ def handle_db_error(exc, context=""):
     - Shows user-friendly message
     """
 
-    constraint = getattr(exc.diag, "constraint_name", None)
+    diag = getattr(exc, "diag", None)
+    constraint = getattr(diag, "constraint_name", None)
+    is_db_error = isinstance(
+        exc,
+        (UniqueViolation, ForeignKeyViolation, NotNullViolation, CheckViolation, IntegrityError),
+    )
 
-    logging.error(
+    logging.exception(
         "DB ERROR | context=%s | type=%s | constraint=%s | msg=%s",
         context,
         type(exc).__name__,
@@ -70,10 +75,15 @@ def handle_db_error(exc, context=""):
             "The operation violates database rules."
         )
 
-    else:
+    elif is_db_error:
         messagebox.showerror(
             "Unexpected error",
             "An unexpected database error occurred."
+        )
+    else:
+        messagebox.showerror(
+            "Application error",
+            f"Unexpected error in {context or 'operation'}: {type(exc).__name__}: {exc}"
         )
 
 
