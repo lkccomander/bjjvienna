@@ -3,7 +3,6 @@ from tkinter import ttk, colorchooser, messagebox
 
 from i18n import t, get_language, set_language
 
-
 def _apply_palette(style, palette):
     if palette is None:
         style.configure("TFrame", background="")

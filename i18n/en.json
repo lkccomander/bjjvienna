@@ -27,6 +27,8 @@
   "settings.pick": "Pick",
   "settings.language.label": "Language",
   "settings.language.note": "Language saved. Please restart the app.",
+  "settings.app.label": "Application",
+  "settings.app.capture_psql": "Capture SQL queries in app.log (<PSQL>)",
   "button.add": "Add",
   "button.update": "Update",
   "button.deactivate": "Deactivate",

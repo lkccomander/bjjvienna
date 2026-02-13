@@ -212,6 +212,7 @@ def build(tab_about):
 
     log_text = tk.Text(logs_frame, height=10, wrap="none", font=("Consolas", 9))
     log_text.grid(row=0, column=0, columnspan=2, sticky="nsew")
+    log_text.tag_configure("log_date", foreground="red")
 
     log_scroll_y = ttk.Scrollbar(logs_frame, orient="vertical", command=log_text.yview)
     log_text.configure(yscrollcommand=log_scroll_y.set)
@@ -222,6 +223,7 @@ def build(tab_about):
     log_scroll_x.grid(row=1, column=0, columnspan=2, sticky="ew")
 
     logs_frame.columnconfigure(0, weight=1)
+    logs_frame.columnconfigure(1, weight=1)
     logs_frame.rowconfigure(0, weight=1)
 
     def _log_path():
@@ -232,17 +234,46 @@ def build(tab_about):
         path = _log_path()
         if not os.path.exists(path):
             content = t("label.no_log")
+            lines = [content]
         else:
             with open(path, "r", encoding="utf-8", errors="ignore") as handle:
                 lines = handle.readlines()
-                content = "".join(reversed(lines))
         log_text.config(state="normal")
         log_text.delete("1.0", tk.END)
-        log_text.insert(tk.END, content)
+        for line in reversed(lines):
+            date_match = re.match(r"^(\d{4}-\d{2}-\d{2})", line)
+            if date_match:
+                date_text = date_match.group(1)
+                log_text.insert(tk.END, date_text, ("log_date",))
+                log_text.insert(tk.END, line[len(date_text):])
+            else:
+                log_text.insert(tk.END, line)
         log_text.config(state="disabled")
+
+    capture_psql_var = tk.BooleanVar(value=False)
+
+    def _load_capture_psql_setting():
+        settings_data = _load_settings()
+        logging_cfg = settings_data.get("logging", {}) if isinstance(settings_data.get("logging"), dict) else {}
+        capture_psql_var.set(bool(logging_cfg.get("capture_psql", False)))
+
+    def _save_capture_psql_setting():
+        settings_data = _load_settings()
+        logging_cfg = settings_data.get("logging", {}) if isinstance(settings_data.get("logging"), dict) else {}
+        logging_cfg["capture_psql"] = bool(capture_psql_var.get())
+        settings_data["logging"] = logging_cfg
+        _save_settings(settings_data)
+
+    _load_capture_psql_setting()
 
     ttk.Button(logs_frame, text=t("button.refresh_logs"), command=refresh_logs).grid(
         row=2, column=0, sticky="w", pady=(6, 0)
     )
+    ttk.Checkbutton(
+        logs_frame,
+        text=t("settings.app.capture_psql"),
+        variable=capture_psql_var,
+        command=_save_capture_psql_setting,
+    ).grid(row=2, column=1, sticky="e", pady=(6, 0))
 
     return {"refresh_about_panel": refresh_about_panel}

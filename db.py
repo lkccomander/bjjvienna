@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import sys
 
@@ -284,7 +285,17 @@ _conn.autocommit = True
 
 def execute(query, params=None):
     with _conn.cursor() as cur:
-        cur.execute(query, params or ())
+        bound_params = params or ()
+        settings = _load_app_settings()
+        logging_settings = settings.get("logging", {}) if isinstance(settings.get("logging"), dict) else {}
+        capture_psql = bool(logging_settings.get("capture_psql", False))
+        if capture_psql:
+            try:
+                rendered_sql = cur.mogrify(query, bound_params).decode("utf-8", errors="replace")
+            except Exception:
+                rendered_sql = f"{query} | params={bound_params!r}"
+            logging.error("<PSQL> %s", rendered_sql)
+        cur.execute(query, bound_params)
         if cur.description:
             return cur.fetchall()
         return []
